@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlotWatch – QR Codes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --accent: #ffd700;
+    --bg: #0d0a00;
+    --surface: #141008;
+    --border: #2a2010;
+    --text: #f0ead0;
+    --muted: #6b5f3a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px;
+  }
+
+  h1 {
+    font-size: 28px; font-weight: 800; color: var(--accent);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+  }
+  .subtitle { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; margin-bottom: 28px; letter-spacing: 1px; }
+
+  .url-input-row {
+    display: flex; gap: 12px; align-items: center; margin-bottom: 28px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px;
+  }
+  .url-input-row label { font-size: 12px; color: var(--muted); white-space: nowrap; font-family: 'DM Mono', monospace; }
+  .url-input-row input {
+    flex: 1; background: #1c1608; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 13px; padding: 8px 12px; outline: none;
+  }
+  .url-input-row input:focus { border-color: var(--accent); }
+  .btn-gen {
+    padding: 10px 20px; background: var(--accent); color: #000;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  .btn-gen:hover { opacity: 0.85; }
+
+  .btn-print {
+    padding: 10px 24px; background: transparent;
+    border: 1px solid var(--accent); color: var(--accent);
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    border-radius: 8px; cursor: pointer; margin-bottom: 28px;
+  }
+  .btn-print:hover { background: rgba(255,215,0,0.08); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  .qr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    text-align: center;
+  }
+  .qr-card .qr-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-card .qr-name {
+    font-weight: 700; font-size: 13px; line-height: 1.4;
+    color: var(--text);
+  }
+  .qr-card .qr-num {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--accent); background: rgba(255,215,0,0.08);
+    border: 1px solid rgba(255,215,0,0.2);
+    padding: 2px 10px; border-radius: 100px;
+  }
+  .qr-card .qr-url {
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    color: var(--muted); word-break: break-all;
+  }
+
+  @media print {
+    body { background: #fff; color: #000; padding: 10px; }
+    h1, .subtitle, .url-input-row, .btn-print { display: none; }
+    .grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .qr-card { background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 14px; break-inside: avoid; }
+    .qr-card .qr-name { color: #000; font-size: 12px; }
+    .qr-card .qr-num { color: #555; background: #f5f5f5; border-color: #ccc; }
+    .qr-card .qr-url { color: #999; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎰 SlotWatch QR-Codes</h1>
+<div class="subtitle">STANDORT-QR-CODES — SCANNEN → FORMULAR ÖFFNET SICH AUTOMATISCH</div>
+
+<div class="url-input-row">
+  <label>Formular-URL:</label>
+  <input type="text" id="baseUrl" placeholder="https://deine-url.com/spielautomaten-system.html" />
+  <button class="btn-gen" onclick="generateAll()">⚡ QR Codes generieren</button>
+</div>
+
+<button class="btn-print" onclick="window.print()">🖨️ Alle drucken</button>
+
+<div class="grid" id="grid"></div>
+
+<script>
+  const STANDORTE = [
+    'Feldmochinger Str. 8',
+    'Landsberger Str. 478',
+    'Stiftbogen 43',
+    'Stahlgruberring 40',
+    'Allacher Str. Karlsfeld',
+    'Bistro Tela 176',
+    'Casino Tela 176',
+    'Play Waltramstr. 1',
+    'Roj Reginfriedstr. 1',
+    'Auerfeld – Auerfeldstr. 27',
+    'Arena – Rosenheimer Str. 103',
+    'Max – Klackstr. 17 Unterschleißheim',
+    'Bo12 Perlach',
+    'Atlantis',
+    'Play – Schlierseer Str. 83',
+  ];
+
+  function generateAll() {
+    const base = document.getElementById('baseUrl').value.trim();
+    if (!base) { alert('Bitte zuerst die Formular-URL eingeben!'); return; }
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    STANDORTE.forEach((name, i) => {
+      const url = base + '?standort=' + encodeURIComponent(name);
+
+      const card = document.createElement('div');
+      card.className = 'qr-card';
+      card.innerHTML = `
+        <div class="qr-num">Standort ${String(i+1).padStart(2,'0')}</div>
+        <div class="qr-box" id="qr-${i}"></div>
+        <div class="qr-name">📍 ${name}</div>
+        <div class="qr-url">${url}</div>
+      `;
+      grid.appendChild(card);
+
+      new QRCode(document.getElementById('qr-' + i), {
+        text: url,
+        width: 140,
+        height: 140,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    });
+  }
+
+  // Auto-generate if URL is already in the address bar
+  const params = new URLSearchParams(window.location.search);
+  const autoBase = params.get('base');
+  if (autoBase) {
+    document.getElementById('baseUrl').value = autoBase;
+    generateAll();
+  }
+</script>
+</body>
+</html>

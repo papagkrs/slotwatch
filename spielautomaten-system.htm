@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlotWatch – Spielautomaten Service</title>
+<link href="SlotWatch%20%E2%80%93%20Spielautomaten%20Service%20neu_files/css2.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0a00; --surface: #141008; --surface2: #1c1608; --border: #2a2010;
+    --accent: #ffd700; --accent2: #ff6b00; --critical: #ff3d3d; --medium: #ff9500;
+    --green: #00e5a0; --text: #f0ead0; --muted: #6b5f3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(255,215,0,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,215,0,0.025) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .app { position: relative; z-index: 1; min-height: 100vh; }
+
+  header { border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; background: rgba(13,10,0,0.95); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .logo-text { font-size: 22px; font-weight: 800; color: var(--accent); }
+  .logo-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .header-stats { display: flex; gap: 28px; }
+  .stat { text-align: center; }
+  .stat-val { font-size: 24px; font-weight: 800; font-family: 'DM Mono', monospace; }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .stat-val.red { color: var(--critical); } .stat-val.orange { color: var(--medium); }
+
+  .content { padding: 28px 32px; max-width: 800px; margin: 0 auto; }
+  .section-title { font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .report-form { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 32px; }
+  .form-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-full { grid-column: 1/-1; }
+  label { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  select, textarea, input[type="text"] { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; padding: 10px 14px; outline: none; transition: border-color 0.2s; appearance: none; }
+  select:focus, textarea:focus, input[type="text"]:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .spielbar-row { display: flex; gap: 10px; margin-top: 6px; }
+  .btn-spielbar { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+
+  .btn-submit { width: 100%; padding: 14px; margin-top: 16px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #000; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-submit:hover { opacity: 0.88; }
+  .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+  .error-msg { display: none; background: rgba(255,61,61,0.12); border: 1px solid rgba(255,61,61,0.4); color: #ff8080; border-radius: 8px; padding: 10px 14px; margin-top: 14px; font-size: 13px; font-weight: 600; }
+
+  /* ERFOLG */
+  .success-box { display: none; background: rgba(0,229,160,0.06); border: 1px solid rgba(0,229,160,0.3); border-radius: 16px; padding: 40px 24px; text-align: center; margin-bottom: 32px; animation: fadeUp 0.4s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+  .success-icon { font-size: 56px; margin-bottom: 14px; }
+  .success-title { font-size: 22px; font-weight: 800; color: var(--green); margin-bottom: 10px; }
+  .success-detail { font-size: 14px; color: #a0b090; line-height: 1.8; margin-bottom: 20px; }
+  .success-status { display: inline-flex; align-items: center; gap: 10px; background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.3); border-radius: 100px; padding: 10px 24px; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--green); font-weight: 700; }
+  .success-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .btn-new { margin-top: 20px; padding: 10px 28px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; border-radius: 8px; cursor: pointer; display: inline-block; }
+  .btn-new:hover { background: rgba(255,215,0,0.08); }
+
+  /* TICKETS */
+  .ticket { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; position: relative; overflow: hidden; animation: fadeUp 0.3s ease; }
+  .ticket::before { content: ''; position: absolute; left:0; top:0; bottom:0; width: 4px; }
+  .ticket.critical::before { background: var(--critical); }
+  .ticket.medium::before { background: var(--medium); }
+  .ticket-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .ticket-id { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .ticket-location { font-weight: 700; font-size: 14px; flex: 1; }
+  .ticket-machine { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.2); padding: 2px 8px; border-radius: 6px; }
+  .badge { font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 10px; border-radius: 100px; text-transform: uppercase; letter-spacing: 1px; }
+  .badge.critical { background: rgba(255,61,61,0.12); color: var(--critical); border: 1px solid rgba(255,61,61,0.3); }
+  .badge.medium { background: rgba(255,149,0,0.12); color: var(--medium); border: 1px solid rgba(255,149,0,0.3); }
+  .ticket-desc { font-size: 13px; color: #a09070; margin-bottom: 10px; line-height: 1.5; }
+  .ticket-footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ticket-time { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .ticket-status-btn { margin-left: auto; font-size: 11px; padding: 5px 14px; border-radius: 100px; font-family: 'DM Mono', monospace; cursor: pointer; border: none; font-weight: 700; }
+  .ticket-status-btn.open { background: rgba(255,149,0,0.15); color: var(--medium); }
+  .ticket-status-btn.resolved { background: rgba(0,229,160,0.15); color: var(--green); }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 44px; margin-bottom: 12px; opacity: 0.4; }
+
+  @media (max-width: 600px) {
+    .content { padding: 16px; } header { padding: 14px 16px; }
+    .form-grid { grid-template-columns: 1fr; } .form-full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🎰</div>
+      <div>
+        <div class="logo-text">SlotWatch</div>
+        <div class="logo-sub" id="logoSub">Spielautomaten Service</div>
+      </div>
+    </div>
+    <div class="header-stats" id="headerStats">
+      <div class="stat"><div class="stat-val red" id="stat-critical">0</div><div class="stat-label">Kritisch</div></div>
+      <div class="stat"><div class="stat-val orange" id="stat-medium">0</div><div class="stat-label">Mittel</div></div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ERFOLG -->
+    <div class="success-box" id="successBox">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Störung gemeldet!</div>
+      <div class="success-detail" id="successDetail"></div>
+      <div class="success-status">🔧 Techniker ist informiert und auf dem Weg</div>
+      <br><br>
+      <button class="btn-new" onclick="neuerFehler()">+ Neue Störung melden</button>
+    </div>
+
+    <!-- FORMULAR -->
+    <div id="formSection">
+      <div class="section-title">Störung melden</div>
+      <div class="report-form">
+        <div class="form-title">🎰 Neuen Defekt melden</div>
+        <div class="form-grid">
+
+          <div>
+            <label>Standort</label>
+            <input type="hidden" id="standort" value="">
+            <div id="standortAnzeige" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--muted);font-style:italic;">
+              📍 Wird per QR-Code gesetzt
+            </div>
+          </div>
+
+          <div>
+            <label>Fehlertyp</label>
+            <select id="fehlertyp">
+              <option value="" selected="selected">Fehler wählen...</option>
+              <option>💰 Leer</option>
+              <option>💵 Schein klemmt</option>
+              <option>🪙 Münzstau</option>
+              <option>🌐 Offline / Oasis</option>
+              <option>🖥️ Display oben geht nicht</option>
+              <option>🖥️ Display unten geht nicht</option>
+              <option>⚡ Gerät geht nicht an</option>
+              <option>🚨 Gerät macht Alarm</option>
+              <option>❓ Sonstiges</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Automaten-Nr.</label>
+            <input type="text" id="automat" placeholder="z.B. A-07 oder #4">
+          </div>
+
+          <div>
+            <label>Gemeldet von</label>
+            <input type="text" id="melder" placeholder="Dein Name">
+          </div>
+
+          <div class="form-full">
+            <label>Automat noch spielbar?</label>
+            <div class="spielbar-row">
+              <button type="button" class="btn-spielbar" id="btnJa" onclick="setSpielbar(true)">✅ Ja</button>
+              <button type="button" class="btn-spielbar" id="btnNein" onclick="setSpielbar(false)">❌ Nein</button>
+            </div>
+          </div>
+
+          <div class="form-full">
+            <label>Zusätzliche Beschreibung</label>
+            <textarea id="beschreibung" placeholder="Was ist passiert? Seit wann?"></textarea>
+          </div>
+
+        </div>
+        <div class="error-msg" id="errorMsg"></div>
+        <button class="btn-submit" id="submitBtn" onclick="submitTicket()">
+          🎰 Störung melden &amp; Techniker anfordern
+        </button>
+      </div>
+    </div>
+
+    <!-- TICKETS — nur Chef -->
+    <div id="ticketSection">
+      <div class="section-title">Offene Tickets</div>
+      <div id="ticketList">
+        <div class="empty"><div class="empty-icon">🎰</div><div>Keine Störungen</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let spielbar = null;
+  let ticketCounter = 4000;
+  let tickets = [];
+
+  const BASE_BTN = 'flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;';
+
+  function setSpielbar(val) {
+    spielbar = val;
+    document.getElementById('btnJa').style.cssText = val
+      ? 'flex:1;padding:10px;border-radius:8px;border:1px solid var(--green);background:rgba(0,229,160,0.15);color:var(--green);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;'
+      : BASE_BTN;
+    document.getElementById('btnNein').style.cssText = !val
+      ? 'flex:1;padding:10px;border-radius:8px;border:1px solid var(--critical);background:rgba(255,61,61,0.15);color:var(--critical);font-family:Syne,sans-serif;font-size:14px;font-weight:700;cursor:pointer;'
+      : BASE_BTN;
+  }
+
+  function resetForm() {
+    spielbar = null;
+    document.getElementById('btnJa').style.cssText = BASE_BTN;
+    document.getElementById('btnNein').style.cssText = BASE_BTN;
+    ['fehlertyp','automat','melder','beschreibung'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el.tagName === 'SELECT') el.value = ''; else el.value = '';
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const s = new URLSearchParams(window.location.search).get('standort');
+    if (s) {
+      document.getElementById('standort').value = s;
+      const a = document.getElementById('standortAnzeige');
+      a.style.cssText = 'background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:10px 14px;font-size:14px;font-weight:700;color:var(--accent);';
+      a.innerHTML = '📍 ' + s;
+      document.getElementById('ticketSection').style.display = 'none';
+      document.getElementById('headerStats').style.display = 'none';
+      document.getElementById('logoSub').textContent = 'Störung melden';
+    }
+  });
+
+  function updateStats() {
+    document.getElementById('stat-critical').textContent = tickets.filter(t => t.severity==='critical' && t.status==='open').length;
+    document.getElementById('stat-medium').textContent = tickets.filter(t => t.severity==='medium' && t.status==='open').length;
+  }
+
+  function toggleStatus(id) {
+    const t = tickets.find(t => t.id===id);
+    if (t) { t.status = t.status==='open' ? 'resolved' : 'open'; renderTickets(); updateStats(); }
+  }
+
+  function renderTickets() {
+    const list = document.getElementById('ticketList');
+    if (!tickets.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">🎰</div><div>Keine Störungen</div></div>'; return; }
+    list.innerHTML = tickets.slice().reverse().map(t => `
+      <div class="ticket ${t.severity}">
+        <div class="ticket-header">
+          <span class="ticket-id">#${t.id}</span>
+          <span class="ticket-location">📍 ${t.location}</span>
+          ${t.automat ? `<span class="ticket-machine">🎰 ${t.automat}</span>` : ''}
+          <span class="badge ${t.severity}">${t.severity==='critical' ? '🔴 Kritisch' : '🟠 Mittel'}</span>
+        </div>
+        <div class="ticket-desc"><strong>${t.fehlertyp}</strong>${t.desc ? ' — '+t.desc : ''}</div>
+        <div class="ticket-footer">
+          <span class="ticket-time">🕐 ${t.time}</span>
+          ${t.melder ? `<span style="font-size:11px;color:var(--muted)">von ${t.melder}</span>` : ''}
+          <span style="font-size:11px;">${t.spielbar===true ? '✅ Spielbar' : t.spielbar===false ? '❌ Nicht spielbar' : ''}</span>
+          <button class="ticket-status-btn ${t.status}" onclick="toggleStatus(${t.id})">
+            ${t.status==='open' ? '⏳ Offen' : '✅ Erledigt'}
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  function neuerFehler() {
+    document.getElementById('successBox').style.display = 'none';
+    document.getElementById('formSection').style.display = 'block';
+    resetForm();
+  }
+
+  async function submitTicket() {
+    const standort = document.getElementById('standort').value;
+    const fehlertyp = document.getElementById('fehlertyp').value;
+    const automat = document.getElementById('automat').value.trim();
+    const melder = document.getElementById('melder').value.trim();
+    const beschreibung = document.getElementById('beschreibung').value.trim();
+    const errEl = document.getElementById('errorMsg');
+
+    if (!standort) { errEl.style.display='block'; errEl.textContent='⚠️ Kein Standort – bitte QR-Code scannen.'; return; }
+    if (!fehlertyp) { errEl.style.display='block'; errEl.textContent='⚠️ Bitte einen Fehlertyp auswählen.'; return; }
+    errEl.style.display = 'none';
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Wird gesendet...';
+
+    const id = ++ticketCounter;
+    const now = new Date().toLocaleTimeString('de-AT', {hour:'2-digit', minute:'2-digit'});
+    const severity = spielbar === false ? 'critical' : 'medium';
+    const spielbarText = spielbar===true ? '✅ Ja' : spielbar===false ? '❌ Nein' : 'Nicht angegeben';
+    const severityLabel = severity==='critical' ? '🔴 KRITISCH' : '🟠 MITTEL';
+
+    tickets.push({ id, location: standort, fehlertyp, automat, melder, desc: beschreibung, spielbar, severity, status: 'open', time: now });
+    renderTickets();
+    updateStats();
+
+    const msg = `🎰 NEUE STÖRUNG #${id}\n\n📍 Standort: ${standort}\n🔧 Fehler: ${fehlertyp}\n${automat?'🎰 Automat: '+automat+'\n':''}${melder?'👤 Gemeldet: '+melder+'\n':''}🕹️ Spielbar: ${spielbarText}\n${beschreibung?'📝 '+beschreibung+'\n':''}${severityLabel}\n🕐 Uhrzeit: ${now}`;
+
+    try {
+      await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({chat_id:'8725948866', text: msg})
+      });
+    } catch(e) {}
+
+    document.getElementById('formSection').style.display = 'none';
+    document.getElementById('successBox').style.display = 'block';
+    document.getElementById('successDetail').innerHTML =
+      `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}`;
+
+    btn.disabled = false;
+    btn.innerHTML = '🎰 Störung melden & Techniker anfordern';
+  }
+</script>
+
+
+</body></html>
