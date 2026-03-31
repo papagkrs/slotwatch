@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlotWatch – QR Codes</title>
+<link href="qr.html_files/css2.css" rel="stylesheet">
+<script src="qr.html_files/qrcode.min.js"></script>
+<style>
+  :root {
+    --accent: #ffd700;
+    --bg: #0d0a00;
+    --surface: #141008;
+    --surface2: #1c1608;
+    --border: #2a2010;
+    --text: #f0ead0;
+    --muted: #6b5f3a;
+    --green: #00e5a0;
+    --critical: #ff3d3d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-size: 28px; font-weight: 800; color: var(--accent);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+  }
+  .subtitle { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; margin-bottom: 28px; letter-spacing: 1px; }
+
+  .controls {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .url-input-row {
+    display: flex; gap: 12px; align-items: center; margin-bottom: 16px;
+  }
+  .url-input-row label { font-size: 12px; color: var(--muted); white-space: nowrap; font-family: 'DM Mono', monospace; }
+  .url-input-row input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 13px; padding: 10px 14px; outline: none;
+  }
+  .url-input-row input:focus { border-color: var(--accent); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 20px; background: var(--accent); color: #000;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+  .btn-outline:hover { background: rgba(255,215,0,0.08); }
+
+  .add-standort-row {
+    display: flex; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .add-standort-row input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: 'Syne', sans-serif;
+    font-size: 14px; padding: 10px 14px; outline: none;
+  }
+  .add-standort-row input:focus { border-color: var(--accent); }
+
+  .section-title { font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin: 24px 0 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 220px);
+    gap: 20px;
+  }
+
+  .qr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    text-align: center;
+    position: relative;
+  }
+  .qr-card .qr-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-card .qr-name {
+    font-weight: 700; font-size: 13px; line-height: 1.4;
+    color: var(--text);
+  }
+  .qr-card .qr-num {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--accent); background: rgba(255,215,0,0.08);
+    border: 1px solid rgba(255,215,0,0.2);
+    padding: 2px 10px; border-radius: 100px;
+  }
+  .qr-card .qr-url {
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    color: var(--muted); word-break: break-all;
+  }
+  .qr-card .qr-actions {
+    display: flex; gap: 8px; margin-top: 4px;
+  }
+  .qr-card .qr-btn {
+    font-size: 10px; padding: 4px 10px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--muted); cursor: pointer; font-family: 'DM Mono', monospace;
+  }
+  .qr-card .qr-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .qr-card .qr-btn.delete:hover { border-color: var(--critical); color: var(--critical); }
+
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+
+  @media print {
+    body { background: #fff; color: #000; padding: 10px; }
+    h1, .subtitle, .controls, .qr-actions { display: none; }
+    .grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .qr-card { background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 14px; break-inside: avoid; }
+    .qr-card .qr-name { color: #000; font-size: 12px; }
+    .qr-card .qr-num { color: #555; background: #f5f5f5; border-color: #ccc; }
+    .qr-card .qr-url { color: #999; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎰 SlotWatch QR-Codes</h1>
+<div class="subtitle">STANDORT-QR-CODES — SCANNEN → FORMULAR ÖFFNET SICH AUTOMATISCH</div>
+
+<div class="controls">
+  <div class="url-input-row">
+    <label>Formular-URL:</label>
+    <input type="text" id="baseUrl" placeholder="https://deine-url.com/spielautomaten-system.html" value="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html">
+    <button class="btn" onclick="generateAll()">⚡ QR Codes generieren</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-outline" onclick="window.print()">🖨️ Alle drucken</button>
+    <button class="btn btn-outline" onclick="saveSettings()">💾 URL speichern</button>
+    <button class="btn btn-outline" onclick="resetToDefault()">🔄 Standard-Standorte</button>
+  </div>
+  <div class="add-standort-row">
+    <input type="text" id="newStandort" placeholder="Neuen Standort hinzufügen...">
+    <button class="btn" onclick="addStandort()">+ Hinzufügen</button>
+  </div>
+</div>
+
+<div class="section-title">Standorte</div>
+<div class="grid" id="grid"><div class="qr-card">
+        <div class="qr-num">Standort 01</div>
+        <div class="qr-box" id="qr-0" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Feldmochinger%20Str.%208"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Feldmochinger Str. 8</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Feldmochinger%20Str.%208</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(0)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(0)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 02</div>
+        <div class="qr-box" id="qr-1" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Landsberger%20Str.%20478"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIwAAACMCAYAAACuwEE+AAALdElEQVR4Xu2d0XLbOgxEk///6NZy7I5EEdBZgHbTZjtzX24gklgsFgBlJ58fHx+/bv8t/ffr13zJz89PtM/++eiZaI9sg/1aleevDj+elfixXzOyp3iq+135M/v5FkETpoLc5BkTpggkzYhoeZIpFYWwwhQDunvsoDCVIDzXIsGgGagSjhBsO6fqHy2hTwzG9Uk5Jbjtw0ztqd0VhUYfTJgEMRPm48OEuUqpvfzCJt0Kc0OAZBfp6jNpJJJN5DjaI/OhU57os5VzzfhMcB6f6+ydlfiwJJkwxxBUeoJO0Drj9vZsZ28TZpK2VCWUpn5llpswQu9Aph4i03QqE452N6VTHLWLeqDZuWiZ/S8UhgbGhImRMmEuygVpjGk2ESISUlPloHZWmN27pO6UpDablf0ISaKeIprixjVVsqr2Y6mkSaRMZfdmeivJM4Z/lynJhGFXHCbMg8UmzD9CGFWmiQSqo+x4nxCdifYKZLKK9iCKm5UhFc+uvZpo1O+Xv0vqHpwEyoQ5h7uL+3PFt79L6h7chKlpTRd3RJja0c5PUelXy1jHvtIUEj/oVNZZi/id+bcqrqcpadXCBJyxPyHPEOCycfTVe2Sfh3n13ibMg72rgLbCrJGDz1tAln+md380epWtukPUhq5JIFBvnGnGkws6YjPuR31X7UyYG2ImDKeNCWPCcLbcLFuvBqKdSMZWml5yuUTlW0JpMKb+kT3I+EvK4bgXuY6oxM+EIVE1Yf4gYMKYMCcEMgU99DCq9KmTSnoQ8Al9dcQekSCl5FU+kVL5Kv/U8pSd1YQZWGXCHKfG07uk/T2MFUb/tD1VTSvMNmLtyogKSKWrf5VkRxeNK31S11KxzS7uXlaSyA1tlFGqOr2DMKRnGcd7ddSsvHwkBCWxyHq0VSQ5vR+LXg2oBFDtTZgvBDr3MCbMxYirliQrDL8zINjeCU6aXrIt3ZDIMck6dZ3MB0osgkOllMzWVUv/2MOoJWl/hvZYTYAyYc4orQoaJSFprDuxtMI80LPCHGmUKszNVPo8jMpi1Z6Wju7YqWY/IdW4JikrZF2iCitt0snPhGFQk8CaMBMsVcVQ7a0wjMCvtCopDGli1WlmdJLc3XT3oA3j005Vkm5CkP0iclQUjRCt1MOYMDG0lf4pWs2EIRR+2Fhh2OeJ/zmFoQe+kvVMQldmbXQOQtBOCav4R/Yj09a2DimPdK0Qw2hKIlLZDYBa9gTxupuOPnTPO9s/CxLxz4SZBOoJSiUD1fuSfQBMmDPF2wpzW2B6cUdKBFGhTBXUjI+ykWay6lOHrKPf5IwqHnRKIipGm/Lwe0kquGq52OxVgEyYI8omzAMPolwVQqvPWGEmfWBUkkg2qzajCr07gKQsREpJyEOIXsEg6stoT5j1dWplQF+VJbetxKYCFhkVqdMmTO/e595GWGEYiFaYr7REhCEyrY5r25qqhL8qaGpp7aopUcR340mV3IQZokfIQGyy8mvCJGqRqYIVJqbOP60wZJrpduKk3NBp4WlXuelVz5H53blnisrku/c7YdhpelcBcm+mwJfxTZijIlUSgpTDrOSiHsYKQ2Duv+wkw4UV5oGAFSYmJVVyandF/1Rhtn71agHSgJEGlr77UKcQlWx0pCfrZn6T50mZpReOaiW4ivsMp8NvoIoWMGH0aWZlX2bCPPB/FRErmTN7hijEj1OY/ZRESgEBkSoVkVB6A0lIssqGEH2Uc4Ib8ZXYUD9JGzGuFX4Zn4JCDzeth+AXEq0ESDlrZkuxUc9O7IkN9dOEoUg17UyYCYCqhJI7BMpoMh5WyidtHq/6GepHBxNSrsf1yblU3PBNrwlzDAcBmgoXWcuE2S584B9OscLov3CycrdESutJYbY4PjODLLDPIiLx6a1h0PSqUk4Ilt2LqH7QKXBvR1QlsqfKtcqPKMZ3DE2Y+BuD6kRC72SI0pKWIOthKiVtRkwrzASVVZn5IwgTXdyppUctI2OJUING7DMpX1UiVBXKeg2iKtl+q5QrJb4Jw5px0ieRgJswFx1Zpekl9dcKc/7Q2VsUptP00u6d2HWcpeShCkDOO5ssx/VVnyrlTTlr1iTTia41JXUOSw9PRk0TphYJco2ydEqqHXP+lJqNlabcCnPE/mWEqUxAz2foNELtlHWzEqH2SVSyiSKqiVZRUJKAxKcRQ1SSTJgjApTcqxTNhJkwkAbBCrPl+Ne/U38hvmopKcz+HqaywJW80s6f2JFMo8QjJYn0SVf+R8G9eq5770P6k6szTElpwui/fbJSajo9RYW4JswgwUQhKu92upkdZe1/Q5gtDkSaZjYEBHrTS7KoU7aoj+oe2bqE1CrBKngSbCk+6HtJqlOkF9ps1GxWg9ktHeR8Jgyl2qRLnz1ayQi1uV2ZQSopTRgT5g8CVpgzGVq/vYGWnqcdfTmnBoraU7vZeYnyjPCSHk/Iz0tT4h+xSVUzGqs7ZKAjHbV7nqVrr4LVaVq3M5swCQjkwswKcykSLQOSEMQmVZiNA8opO1mzcmohJYKeVQWRJAdthknDTnylMSRrZTbyWE2DcDUxdR1UHe8GUC3R3f265TDaX8VtTCYT5oasFeZIr5LCqEpCMkJdc3ODrEuyabRRywoppyv9W6loET4Vn0KFUZ0ngVXXNGG+Qq2Sm5Z7E2ZAqvLycWU2ksARMhAbslemslSl5T+wRaSSqM14QPWORZ0uaBNKzkFsMv8qmf1cL3uWvFKJ4hfheSJZdHFHWE2IQbry7VCVIDydUYGq9DMqHibMJEVNmCMoleynpeBbKswqqayoBXmGNM2VoHXXnSkdVTGSdKT8VhSNYJ6WJBMm7nQ62GyrEmKQ8k1sxhLfuWcyYR4IkJ6ENIi4WVz0G0O/FWGySUL5mcpoKt9RACmIig+0Ec/2ViV/VWnMzk6SIL3pjaYkFVz1INn6JPuJxHd8MGG+0Du9SzJhYloRhbDCXKQlyWwirZXsJ8qTKR25ryF7dEtup7RWCLpqv7viqApjwuhvtyvll5BytCGJSuKXNfImzA0dojwre7RVGf/XCUPuGugYOcsq6qB6jkp5W/UMndBIP0Sw7WJDz/s8y3ju8K+ZEECJBNKegmQwOdO7bWgATJhBykmgrDBnlEivsjKZKMFDhdniHv3w+f+JU8RmZfMXyXc25XTlnCQFORcpPWSvlf5QIqHfQEXIQGxMmDMCallfqTYquTd7E4akctGGZK0JM4BLAVHvB0h2nDr83QvAIgekx/5LwqgXdxJim4QlQSJkUktdpa6r5yD2d/n+i2+oozgRPDMM5Ys7E4Z/Z9qEUdlihfmDGLlN7mY/Ub7uHvI3HwlnyMErkk0mBNI3jD50gpnhQdYleNIyS/YjqpeN/SbMDR0VaBLkzYasS9YyYR4oEbZ3rtRfBTQJ8o8gDC0lM8A6wacBIJ1/5gOp35096KsPdY8K8ckeFdzRxR1Z2ISp/cGrqC/r9mImTMLa7P2R2igToGmZVBWbJB1tsokfRAhGm1BhiAySpq4bzIpTz2cq5elV+3WIS2JROTcl/uHsWzM/A5gc0oQ5hokqitpLkViYMBUEhmesMDmI315hKvVXzUYi/ZsNAYs0nitJSRVKzaWVCvXWHsaEqWW8SpBTo7rwLb0JM6CrTipWmAeARMa6TW+n3HSzLipdahnKpkDVPzJRZnFRyywp3+Oab1WY0+aBVL6qlpO7CRMmn/xMmBs+nTJkhSlqPZFTujRZSw3yOBmp5YKcnZRxOqHt96OKW8Fk5lfal0UXdwQg0geo62z2JkxeFlaV1mgdE+aBjNqfqGT/cQqjAkQYSrt6oiqqotGPG6hSTqaRrPQQnEnJpNh2cEunJOIIsSGZnPUUpGYTgpkw52ipuJkwE8ZbYY6gpJPfvukl6kFsrDBfKBGlJA3s3qaC7cqS9BsgAe8x2v5l1AAAAABJRU5ErkJggg=="></div>
+        <div class="qr-name">📍 Landsberger Str. 478</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Landsberger%20Str.%20478</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(1)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(1)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 03</div>
+        <div class="qr-box" id="qr-2" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Stiftbogen%2043"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Stiftbogen 43</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Stiftbogen%2043</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(2)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(2)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 04</div>
+        <div class="qr-box" id="qr-3" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Stahlgruberring%2040"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Stahlgruberring 40</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Stahlgruberring%2040</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(3)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(3)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 05</div>
+        <div class="qr-box" id="qr-4" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Allacher%20Str.%20Karlsfeld"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Allacher Str. Karlsfeld</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Allacher%20Str.%20Karlsfeld</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(4)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(4)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 06</div>
+        <div class="qr-box" id="qr-5" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Bistro%20Tela%20176"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Bistro Tela 176</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Bistro%20Tela%20176</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(5)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(5)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 07</div>
+        <div class="qr-box" id="qr-6" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Casino%20Tela%20176"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIwAAACMCAYAAACuwEE+AAALrklEQVR4Xu2d65bbOAyDO+//0N14kuzaskh/IJXsXNBz+qeVdQFBgJQzmY8/f/78vf1d+ufv3/mUHx8faJ398/tnonnRpLdBK+earTmeLzpHtF/13N31KG77cVsETZgKcpNnugE0YQZQrTA5M78dYTqST+SeZiCxNDJmDI96Pkrw5zrj/NHzhBgRngTnbT903JW4jmc4WJIK6MHbdvUJDSYBrrvG/nn1fCbMkXifRNzXMCqg3WCaMLESfDuFIdlFAp5JoyrZkVoQcFfaE02syr5mFkFwHp/rrJ11d6HCmDDHEFRqgk7Q1OQwYR4IqCpE7z6oSjwDYcLckXirwlxV5FdyHD1PM5mSSdlnNicp/jvEzWyWYnKFOe6SXmFJSiCiVnU2BwXHhDl3PSbM7rUEvfepEHlG6Gw9taMkavrjFYZebEVgEfmudGUqYYjVdINZUUPSTXWc4+01jAnzKByDS05qrSShOnN9u7aaAEIku0tQdR9Z9qrZ/+0URpVpwmhiKZ+yBz8GcVVHZOupbbLa3m97o+dVCnkaF/V8JAFTS6Ibe44zYc5EN2ESFpkwv5AwqqoQj6ddyyqPpxdpKsHV8aO1/p/nWxXXkyWtmpiA85UAJfs1YR4d3labrSKKWoSqQeiMH4vQzlyEYF8pIVbG9+N2+OWE2W+QVut03FWRnYFDOh3aLVwlR0bQ/RqkfSZjul0ZJZUJA9tfQrbKqwhCBjLGhLmgvKpIo0VEWW6FyYFvfbyBdElY6sBngjvBzAhD9zizIfXZcTwhPlG3bF51j+mF577opdJ3tYFKWUSAM2GOCNCb7Kt4jf9vwjwQUV85rFRQQnb1Lfj/Qph9l6RKH2lN1VqBSjZRpKwIJQEkmUmDRtSbtOv0Bed+72qipG+rTZgjLTrgVsgeJZSajNs8qkIRBR3xOLTVVpjem3IT5oEAYa4quUTux86GSHYmxaQYt8IclSpVGOJ7hDy0bukEh0j2uFfyTMci6HoRziq2WXfzCmw/Ezh6NdCxJxPmjoBamJswSSE2AkosilhSFiQrTIwywfakMETGyMQks2gGEiJRIpAaZqUtdxSj8iypIwme7bZ6pa+r/k0OaMLcUTJhCFuSWqFycWeFueiSNmLO4kLYqo4Z1yEWSNQN8uowTN07tVmioJW5Kmd8PqOul9aBJkx8WUfqtSyQxCrVuqpCHBNmsKEKiFaYGLW3KEwlaOSu591ZSrKR7GnEo6tWM3wrNZpaBpzKiFWWZMLk76FMmKGNM2F+OWFId6JmTSahxApIyxvte/v3rhxfdZO0C1Qv5eh4Eg/VTk/vxyJLMmGYZmZdDqnRSBKYMA+USEZEYSNqkb09ZnS4HvWrCUOYTIJM7aWTgepeR0siz1/ThY9Qccus9fl/7+iSUksiIKoHf1UGqns1Ye40I8qc1oH7GkYNAimgTJg7/GqifVmFuR2k/LPVqqVkXQS5eSWFeGYSZA2SNNEaFShJ0tFzd85HzbX1s9UmzBFmE+aCdibMLyTMvoYhUquSJCuySEZ2izQqtbPOg9gTOcOKYjPqjEitQzCgOKPf+djxRhNmTXdiwgydQ5QFlPnP52nGk/WsMGeU0E8+EkkjdpbNs4oY6Wc5gu//JQpKMKA3yyqpaRlAx13Zb4rhvq1Wg1YBkWR2Z14T5oyeqpQmzANDkoGdpLHCkFS/GEPlVw2UmjVZp2JLYjfRnxju22o1COot5cgtdb1VdrbNQ4jcJbH6PGmRqeW+LAlMmFgi1YBTSyLCXUmmbgLP9nU6kwljwmQEPhEm6pIIw0mmZDKrZsQqmVX3nVkpvZgkBTfZl6p6ChnQ+iYMgek4hhKXjCO11H51E+aBhgruSuBUypC9joX1j1GYfQ3TAY50MDSbVDJQ+4wCTfZF9kTmoe09icW4J7J+1mU910w7MRNmXYtNAmbCXKQCYfQ4Bclm9c4iswgSaLInMs+PIgyV9mewiMSv7CJIV0Xri4hw6hrEOkaSdHGL1nzFvO17mA7QlfZUBcGEuaNMiE/IbsJMUOqQkoBOA1gh+8oEnp0FX9ypGyFdEgVXXZvUF6+qYSpBVq2f4DGerxOPrBZDH6AiGdjZYEYksrYJc0eQFN0EKxPmwUhCPpX4v05hNmI+QepIJbGbkx+Cj0zu51VvS0k2kX1XFLCS8YR8ZAw9E4n30qKXbiwi5CoCkIOre6XjswCqFkHIQMZU9h4lpglD0YTjTBgI1DZMvcXN3n101IZmHalhyJnImBEfAdbT0IqCEnUjqjLGBX1EkxSCZIMmTI02JsxF17KHlYBlhTkTkSRwSWFuE0+/7qNztUyCXOk8VllKZqfEGivdVyeAUQJ1P95A9O5U9Jow7LeAUBWLgmDCJPS0wqy1iC+lMLfNlL+BimRNV75Va8z2RPZClIQmBB03yz3y7MkugotQSrjZfVnaJRFPIwVpVEzR+dVahe7JhOnbL/p+mI4vkyCN85sw7JeWW2Eu2u2OXdCLtM4atGshSfRlLSnqkqh9PMfR289K7z/z1s4827Nq/UWIRJWSWmgnBivrlgPWJkwcFrXgNmEEilth8laaXAgKcE+HkjU6Yz5tfVPn2eqk8FQP2H2XRA6bdWiqrah1RFabkLUJ5qT+yeLS2YcJc8F4E+b8uwmsMAlpTJgJYfZFryr5aqdCOpMs6cn+slqqUmfNusBoj/SWmVgPwVYtCcbxxN5Odz0mDIO9Ai4JOiExGcNOcRxVOZP8YybRxkgLaoW5o/fjFWZPEnJYQp7szoJkpkrczwq/8XKOkL3bJUU4Z52fGhs6V4gvsSR1UybMGW7SzpowifxaYfKqg3RoGYak7iGKeyqUI4UhGyb2RCWQrEeUrlL8Ebsh51jZJakdISUPUbEMw7DoJQE0YY7QmjATqpH6hJCtYklWGPYBqKwTW6owpPOIxpCijko/8d/OXru2RZJmDFrX0p7P07qDYn2Fxbge+iWhZJMmzLltV5WWBJnEIiPrFUFORe5wFWHCQARJvZa9jf9VChMdloAI4xEOo/L/nCBTulUqSDoYeu5XnY8QlOwxfZdEJiAHJNJK1trGkPVoMWzCUNT/G2fCPLDoqETn2axGUAndtUBCn5QwtKCayT9ZvHJAYnvqvse9ripO6bsk0uER8hDMxwJYxcqEmaBswsTUM2FMGCpMn+NOhNn+7cpiiGcTqaPFMLm4I8Xw6bDg4w0SmgOgmeUSDKPORlVAeobKvOgbqMhhTZj84o5gaMIMVLfCnHOfZDkZQ1UluoKIyHrq6mxJFajn9xS/wpJu7C1/PwyBmraapG7prhc9TyCo7I/UWSTjafar54jWzmKG3iWRQEVjTJg7MuRepRPwWUcziwmppUyYC8argSLjtyV/pMLsa5iOkqjSOgKqPk8y5VSwgd9t0AkyrWEI4UjXOZ5PvRWvqF7rG6g6NYEJk6enCTPBp6ISz2kqz5JnrDDHQJVueolVqUBnckrWizqHTO4JYUjxTu9FiPWQc1C1IevRuUIc9jUMWVAFlG7wFWtXahj1fFHAaddiwmwM3F3tmDBcL9+h0jQessKQiTtVedZ2Zll7BT9VKnK+q7Wqtqpa4yv2milgeg8TWRLZpAmTF4jE3vZjaG2kEjkaX1kvfFttwuhh6apbJYD6Lv97orLeWwmTSbjq3+Swp5Zwd3FH1JFYY6UrUzOeFMYZcUjyR0o3PmvC3JCKyGrCXHwpotrdkCztvnzsFIhWmDvlv63CVOSb1gVPNSBqQX2fkDVbjzzfsZtx/opNz3DLCvG3WpIJcw9FJ7CZTXbmpeQ2YRK5ISBaYaheD+OIFWQSSoLTke/xWOp6FVhI7UDqRmrLaqdZ6dbQTw0QsEyYM0omDJRv4qWjl6sZTwhauZug2awmEclmFYNMNYlykT2d1thqMHJ4ZQxpt+lho3W7hCH2pgaQWi4hJVmbXlmQs9IxL//EHQ0sHTdrA0kAqNqQzOwqKNmvCZO0k1swTZgjpU0YE+ZfRnxnhfkHx2lVSYvJVPwAAAAASUVORK5CYII="></div>
+        <div class="qr-name">📍 Casino Tela 176</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Casino%20Tela%20176</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(6)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(6)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 08</div>
+        <div class="qr-box" id="qr-7" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Play%20Waltramstr.%201"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Play Waltramstr. 1</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Play%20Waltramstr.%201</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(7)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(7)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 09</div>
+        <div class="qr-box" id="qr-8" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Roj%20Reginfriedstr.%201"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Roj Reginfriedstr. 1</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Roj%20Reginfriedstr.%201</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(8)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(8)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 10</div>
+        <div class="qr-box" id="qr-9" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Auerfeld%20%E2%80%93%20Auerfeldstr.%2027"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Auerfeld – Auerfeldstr. 27</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/
+SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?
+standort=Auerfeld%20%E2%80%93%20Auerfeldstr.%2027</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(9)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(9)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 11</div>
+        <div class="qr-box" id="qr-10" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Arena%20%E2%80%93%20Rosenheimer%20Str.%20103"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Arena – Rosenheimer Str. 103</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/
+SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?
+standort=Arena%20%E2%80%93%20Rosenheimer%20Str.%20103</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(10)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(10)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 12</div>
+        <div class="qr-box" id="qr-11" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Max%20%E2%80%93%20Klackstr.%2017%20Unterschlei%C3%9Fheim"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIwAAACMCAYAAACuwEE+AAAMpklEQVR4Xu2d25bbuA5E0///0RlfJI9EA6xdJOVO0jhrzUtEgyBQKBQo9/HXr1+/ft/+W/K/37+1qa+vr9dex/XZv++L1fP2AMf1+7PMv1GfjntG+7U+qfjM2IjOQOy5ib9nT2cZWlUBuZsZTU4B5pkEB/SXAoYkO8PN7phrwwGBs5awDakBkpxR9nLYKWPi7Az7+pmYZf69GMZNdmTQteEcyFlbgHk2jZmYFWAIpTRrimGeATkCL2QY0vsimnREbOvIMVeKUlf4N4Cf10eUoCY6LTpvVtUOcI86x/Uj86kAM4OWpuIiDeMmKgIEaSdZ4VxVcI8iv/33aHijwurIFMUw7xRO4lqA6Qgup/pmAOgIcNLiIlJy/cuITe1PWpIDOrVfj0A+zjAFmHfYqAQWYLaYKbp2K5j0/ajKVcIyZnD9K4bZIhBd3I0mgehRUnHEzuwaBfiW2tUURGI22mqJr3/MlDSbmPbzBRgWUaf992L88bGaHY+vKsCwWH0MMMyd/1etbklK8RNNEdH/jOZQl3WjMRs9S6/d7TZHNV3rk2SY0cO7fdIJ1kx/V4AmuqAA88zWZS8fSYILMHlpkrargH4pw7isEq0nlE/6qnO17ezprG0pP/LbOcujOsWXx670b0V+TwyzwuCVB15he4WNI5AUAAjojkC60r8V+X34enNy2TfuIqHZc5TQrnNQpaFIQrL9nBY7ei43FerloxM7urYAc4sUSVQBZhO9xTAFGMou6ZTkVNNxM1KphPKV6HVsEI3gBCw7r6tnoj3duKsW69ojuRx+W62mJDcJzhRSgHlGoACzIaEYhpXbtwBGaZgVVOtOT4q9XKpVACT21ASWpXi0TZNLN7XGzZ2yh8Zqd1NVGyQ5BRj2JyIqwW7ulL0CzIZMAuJimG2svmunVkCNikpCy25yrmIsMhFkrVS1OPW54+R2xdQVvWwlOSW+WC8fCcWtaCdO3ycAVKAj+41OcU7MlIhtgaZulN1zFWAUUpqprLe8ALO1JDUlkQnHoegV9kjVRtXlfo6IwP08LtMpTaSe92RE1JJm3jsdP2u9S1KbOgHO+vgxEKsTvNoeAf+orivABJEbBaCb+IgFVumFH8swq9hhDyCpEFJ9owlRUxABnbLhMowSoaqAeqysho1lU9KuYQowm6g7fCuuAPMek5eGKcAUYKyxGk6g4bJoSiLVqdqCqzPInk6LG20hTqslcXeLWWk2smfawm4Ppr+iWYBhKVAAJDrDsTEKtN5pwrGabKTuHVaLXhLM0cpWZ2ntqnunUfHqMuooeEicsjMUYG7RK8A8IUSKvABTgHkRjgUYt8pGBaZDuw7l3v1RrVQ9b6larVfPe/ac+JF2rGJF2iRRYuFYTT7oHFhNQxkdqiB8MsHOuymSYCd+xJ6KVQEmiKKqePX8kwD8awFz1zrZFNCjedXCSOs57hslU+3RE2qqH6vnJCYrbBA2J7FU8VMM1OY6ZbUCDJuSoqQVYDZYuYiO0EhsFMMQftF/f5R1gpkWLBnGTXBkkAgrcojIDvFP7e+Kb5bO91XkjMo2saHWqHjQNnSK/d6SSEKcQ2aiTh0yOwTxTwWoAPPMylQrLcDo+xtVKO1zUhTKJrGh1qgCuoRhMqaI9AdhgUy3ODooC7a7v9NWSRwce26Vq/isyAfJjfXH+NlotiPZTZgam92guvs7CS7APCNQgGlQo0DcagCntRBdp+wR4I4WMGKYW1V2vw+j+iTZhBzSteNQtErCKEhIbEZ1hMuuTjxcv0++FGD8i7s9OW7gHYYpwGzRWnVF7VRUMcw5Ai7Q5T2MCnD7XF20kXYTAck9mKpgt2rV+hUi+yEkt79UUPu1cVfrZ4ozs239MX4GpALM3F3OXwmYDAwrqogIP8Vqro2Inb6DsUbjR85Lbq73uI768dZNbv/QnZJWbEQOX4DJdYZqtffnTnsihZN2kwLMeKJUknqJVPqCFNlfxTCKEVa3OBIclUD1fPRMPTFKdN/u1+h90FE4u2dQwG1tv0Svm2DXsdleWoB5RlC9nnHzUoDZIqYmN1LNbvCjovjnGGa/6SUVnImvKCgkIaMtglSF4xOxR86jWFTFj+SAMIw6z5ToLcBc++MURLzuQCrACE4vhsknNPc6w2ENZ22bQvn1BuK4uqlUFPnmVHBVflzjVC2ZIJwzZsKTtCwVB9eGigNhrKxNZrYLMM3kQYIcJd5NtqOx3KRGYzphc7KmAFOAeeFxGDAz9K8E3OioSnxSU0hmQ7WKtq19gmFcn0bPTvJxAtK9wLK+3Ov/6kAzwkodYjX9q7MUYP5/3Si/3qCEVZbcAsx7ZBQw3ZityI0qzpZMPvJqgEwhynHCKlfSsmObtL7vvInOYk0uBQswCqnBc8UUBZgtAm6V74ErhnlGQk0h6vkAtq2PIIbZXw2QqlC7u4BSASKVTPq+65cCuopD1r6U5hi9A2r9iS5SV+T3If4LMHn6FaAJcIgN56LNKSLCGMTeCWw7YEilZiiNAkcCpcSXqsgH4o3fBvjuM6rkOGchZyfMSuTC0c4f/VsDJIBkzQ7MAsx7iRZgtpio21hV7b0KHtU4ak8H/N/GMHfxThR8i011eCKynAA5a1clW2kA9byNq9I8bgtRMSaMStac9inAeDroCMYCzAalGaRHVUTGxePnVDtRa4thnu9+CHuQNeGUlNElAY/q6a6wGrWXAck5QxaH6AzuuQgjRfuTiXO0yNzYyF+VdQzOBNB5t+IG0DlDAaavtAowSoluz4thnoEY/nEKRYEuC8C8vfVmpw25LYGcQflNbKibXrVHptlWMf7JTnTTSxwswJAo6ReOdysFmEMQehOLc5dzUurgdYDSRCvsEcj8swyTBdClcaXySaJIIqJJKvtc9PbWHScjvwkYspbpxIHkQGksZ78j67UFP/y22pk8yIEdkJAkOAl2mU4BMDvLaBzI5wowEEEk2SrBxIYDwB8HGJir7rIZyt8NExvkFtkBhGOPsKyzt2qpvVahpIAby4zF5T3MKHiIg8o2seEkWO3X9ms1lhZgSEThGpJsZYrYKMDkUVSAbz+ZFcDJzu1DQ19vGKVA4pTTkjL1r+6JXJ2hNAzxgzDSbockW8VSPaeMejpbAeYMHaI5IhH9YwCz3/TOCK6rbipVy3JFYCbksmQrFnIYg5wlFZqHi0oC6GgvwjYI9AWYc3gJCKICcQGh1pOWpGyQQrDveAowBRjFSCfw7oBxKitT16QqyFTjCD9Eo8m7J1Wh6urfrU7S9md9OrZpJ9btvunZCjB5igow77Gxvg+jKqoY5hlgcn9E9EUEZQXiP4phnKmBHIxMBSvb0xUUvfvntnQHVK7fK6bWtH06LakAk7evAoxSX4fnCtEzwSyGyVucultxWIym+1v/tnr1JZRiQHeiGvXP3UcVBUmmehVC9CXRVQWYW5TcYJIERtpG6Tr1vLdvAaYTHdLiMkHtJLIY5qKxOsqtm1Q1QpKqdqYJdUVA9nOmvNaewyaurw7QnZjdz7DkHqYAw/6cZBRgBRhYvk6lPNCfvNWN2M5NgnLZYYy7LWe966sTNydmjxjffXfFVLtetR/nAJkvMyNi9P0V5bMbE2JPiWs1JrdFoUBMnjvALcCQiAZr1ESSmS3AbJFR1VUM8wzUPwGY/dXAYLGlH1MgcqcGQp0qIcc93RandBA5r1M4M/6pfYjtVNsUYMZ/85GAOJuMVIGSpI4WALGdAkaJXnWw0YAQAUcYw1X50Xlm9tntkSRkCd7/fQaA0f5ubMg0JqekAswzAgoQ6nkbx9UtrgADRGIvkURTqMomzPNjGUYJpR7TrLjncEZVQp0r7CmNQCif+BoBV7UvMnVlOSNsmBWc/EU20pIKMHpkdltSAUYgbwUjqMohN6lOVRbDbNEi/T/q70TlE12wQhCq6Y2cMQOP074dULk+kXiTDuGskb9bTYLmtKQCTD51FWACtBVgCjCvO4pRMGSK36F+QqukgslUs68h7Yb45dgb9c/pFN2J+H7d0RvRnI0KMO/sUYDZIuCIXiLOlD0SeLWmGOY9QiQ3pxH/OxnGdXZ33P1cRPkKXC3rRuvVGH//DAHp6LmySTAaQrLzulcNH5mSZlpVdNACDGMKogELMJ3JzKn2Ypj4m7uXvRoglK8o3Ua/8X/tRWw7/s2wqGIC5Ucba1UYxNeTbjnEtQDTRNsJJhmrSfsswBB6aQThJ94lZVWjxGPWnn40YGCOu8tIdSq6PCZnhoqdMZ3s47zfInEg4HUEvzovATfBwGXfuJtxUN18khFRBTBLGLlJVWNwAYZA77aGBKoY5j2YJCYjIF2Vj6PH/wHiCsaLn6zyxAAAAABJRU5ErkJggg=="></div>
+        <div class="qr-name">📍 Max – Klackstr. 17 Unterschleißheim</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/
+SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?
+standort=Max%20%E2%80%93%20Klackstr.%2017%20Unterschlei%C3%9Fheim</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(11)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(11)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 13</div>
+        <div class="qr-box" id="qr-12" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Bo12%20Perlach"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Bo12 Perlach</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Bo12%20Perlach</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(12)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(12)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 14</div>
+        <div class="qr-box" id="qr-13" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Atlantis"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Atlantis</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Atlantis</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(13)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(13)">🗑️</button>
+        </div>
+      </div><div class="qr-card">
+        <div class="qr-num">Standort 15</div>
+        <div class="qr-box" id="qr-14" title="file:///C:/Users/K/Desktop/SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?standort=Play%20%E2%80%93%20Schlierseer%20Str.%2083"><canvas width="140" height="140" style="display: none;"></canvas><img style="display: block;" src="data:image/png;base64,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"></div>
+        <div class="qr-name">📍 Play – Schlierseer Str. 83</div>
+        <div class="qr-url">file:///C:/Users/K/Desktop/
+SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef.html?
+standort=Play%20%E2%80%93%20Schlierseer%20Str.%2083</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(14)">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(14)">🗑️</button>
+        </div>
+      </div></div>
+
+<script>
+  const DEFAULT_STANDORTE = [
+    'Feldmochinger Str. 8',
+    'Landsberger Str. 478',
+    'Stiftbogen 43',
+    'Stahlgruberring 40',
+    'Allacher Str. Karlsfeld',
+    'Bistro Tela 176',
+    'Casino Tela 176',
+    'Play Waltramstr. 1',
+    'Roj Reginfriedstr. 1',
+    'Auerfeld – Auerfeldstr. 27',
+    'Arena – Rosenheimer Str. 103',
+    'Max – Klackstr. 17 Unterschleißheim',
+    'Bo12 Perlach',
+    'Atlantis',
+    'Play – Schlierseer Str. 83',
+  ];
+
+  let standorte = [];
+
+  function loadSettings() {
+    const savedUrl = localStorage.getItem('slotwatch_baseurl');
+    const savedStandorte = localStorage.getItem('slotwatch_standorte');
+    
+    if (savedUrl) {
+      document.getElementById('baseUrl').value = savedUrl;
+    }
+    
+    if (savedStandorte) {
+      standorte = JSON.parse(savedStandorte);
+    } else {
+      standorte = [...DEFAULT_STANDORTE];
+    }
+
+    if (savedUrl) {
+      generateAll();
+    } else {
+      renderEmpty();
+    }
+  }
+
+  function saveSettings() {
+    const baseUrl = document.getElementById('baseUrl').value.trim();
+    if (!baseUrl) {
+      alert('Bitte zuerst eine URL eingeben!');
+      return;
+    }
+    localStorage.setItem('slotwatch_baseurl', baseUrl);
+    localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+    alert('Einstellungen gespeichert! ✅');
+  }
+
+  function resetToDefault() {
+    if (confirm('Auf Standard-Standorte zurücksetzen? Eigene Einträge werden überschrieben.')) {
+      standorte = [...DEFAULT_STANDORTE];
+      localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+      generateAll();
+    }
+  }
+
+  function addStandort() {
+    const input = document.getElementById('newStandort');
+    const name = input.value.trim();
+    if (!name) return;
+    
+    if (standorte.includes(name)) {
+      alert('Dieser Standort existiert bereits!');
+      return;
+    }
+    
+    standorte.push(name);
+    localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+    input.value = '';
+    generateAll();
+  }
+
+  function removeStandort(index) {
+    if (confirm('Standort "' + standorte[index] + '" entfernen?')) {
+      standorte.splice(index, 1);
+      localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+      generateAll();
+    }
+  }
+
+  function printSingle(index) {
+    const base = document.getElementById('baseUrl').value.trim();
+    if (!base) { alert('Bitte zuerst die Formular-URL eingeben!'); return; }
+    
+    const url = base + '?standort=' + encodeURIComponent(standorte[index]);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+      <head><title>QR-Code - ${standorte[index]}</title></head>
+      <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;">
+        <div style="text-align:center;">
+          <div id="qr" style="margin-bottom:20px;"></div>
+          <div style="font-weight:bold;font-size:14px;">${standorte[index]}</div>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+        <script>
+          new QRCode(document.getElementById('qr'), {
+            text: '${url}',
+            width: 200,
+            height: 200,
+            colorDark: '#000000',
+            colorLight: '#ffffff'
+          });
+          setTimeout(() => { window.print(); }, 500);
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
+  function renderEmpty() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '<div class="empty">Bitte Formular-URL eingeben und QR Codes generieren klicken.</div>';
+  }
+
+  function generateAll() {
+    const base = document.getElementById('baseUrl').value.trim();
+    if (!base) { alert('Bitte zuerst die Formular-URL eingeben!'); return; }
+
+    localStorage.setItem('slotwatch_baseurl', base);
+    localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    standorte.forEach((name, i) => {
+      const url = base + '?standort=' + encodeURIComponent(name);
+
+      const card = document.createElement('div');
+      card.className = 'qr-card';
+      card.innerHTML = `
+        <div class="qr-num">Standort ${String(i+1).padStart(2,'0')}</div>
+        <div class="qr-box" id="qr-${i}"></div>
+        <div class="qr-name">📍 ${name}</div>
+        <div class="qr-url">${url}</div>
+        <div class="qr-actions">
+          <button class="qr-btn" onclick="printSingle(${i})">🖨️</button>
+          <button class="qr-btn delete" onclick="removeStandort(${i})">🗑️</button>
+        </div>
+      `;
+      grid.appendChild(card);
+
+      new QRCode(document.getElementById('qr-' + i), {
+        text: url,
+        width: 140,
+        height: 140,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    });
+  }
+
+  // Auto-generate if URL is already in the address bar
+  const params = new URLSearchParams(window.location.search);
+  const autoBase = params.get('base');
+  if (autoBase) {
+    document.getElementById('baseUrl').value = autoBase;
+  }
+
+  window.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+
+</body></html>
