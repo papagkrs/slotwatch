@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SlotWatch – Spielautomaten Service</title>
-<link href="SlotWatch%20%E2%80%93%20Spielautomaten%20Servicef_files/css2.css" rel="stylesheet">
+<link href="vvvvvvvvvvvvvvvvvvvvvvvvvvvv_files/css2.css" rel="stylesheet">
 <style>
   :root {
     --bg: #000000; --surface: #0d0d0d; --surface2: #161616; --border: #2a2a2a;
@@ -155,10 +155,55 @@
   .clear-data:hover { color: var(--critical); background: rgba(255,68,68,0.1); }
 
   @media (max-width: 600px) {
-    .content { padding: 16px; } header { padding: 14px 16px; }
-    .form-grid { grid-template-columns: 1fr; } .form-full { grid-column: 1; }
-    .error-grid { grid-template-columns: 1fr 1fr; }
-    .wizard-step { font-size: 9px; }
+    html, body { height: 100%; overflow: hidden; }
+    .content { padding: 12px 12px 80px 12px; height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    header { padding: 10px 12px; }
+    .logo-text { font-size: 18px; }
+    .logo-icon { width: 36px; height: 36px; font-size: 18px; }
+    .header-stats { gap: 12px; }
+    .stat-val { font-size: 20px; }
+    .form-title { font-size: 16px; margin-bottom: 12px; }
+    .report-form { padding: 12px; margin-bottom: 12px; border-radius: 16px; }
+    .wizard-steps { margin-bottom: 12px; padding: 4px; }
+    .wizard-step { font-size: 8px; padding: 6px 2px; }
+    .wizard-step-nr { font-size: 12px; }
+    .section-title { font-size: 10px; margin-bottom: 12px; }
+    
+    .error-group { margin-bottom: 10px; padding: 8px; border-radius: 8px; }
+    .error-group-title { font-size: 12px; margin-bottom: 8px; }
+    .error-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .error-btn { padding: 12px 6px; border-radius: 10px; font-size: 11px; }
+    .error-btn-icon { font-size: 22px; }
+    
+    .step-nav { margin-top: 12px; position: fixed; bottom: 0; left: 0; right: 0; padding: 12px; background: linear-gradient(to top, #000 80%, transparent); z-index: 200; }
+    .step-btn { padding: 14px 20px; font-size: 16px; border-radius: 12px; }
+    .btn-submit { margin-top: 0; }
+    
+    label { font-size: 10px; margin-bottom: 4px; }
+    input[type="text"], textarea { font-size: 14px; padding: 10px 12px; border-radius: 8px; }
+    textarea { min-height: 50px; }
+    
+    .info-box { font-size: 11px; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+    
+    .spielbar-row { gap: 6px; margin-top: 4px; }
+    .btn-spielbar { padding: 12px 8px; font-size: 12px; border-radius: 10px; }
+    
+    .photo-step { padding: 12px; }
+    .photo-btn-large { padding: 30px 12px; font-size: 14px; border-radius: 12px; }
+    .photo-icon { font-size: 36px; }
+    
+    .error-msg { font-size: 12px; padding: 10px 12px; margin-top: 10px; border-radius: 8px; }
+    
+    .form-grid { grid-template-columns: 1fr; }
+    .form-full { grid-column: 1; }
+    
+    .success-box { padding: 24px 12px; border-radius: 16px; }
+    .success-icon { font-size: 40px; }
+    .success-title { font-size: 18px; }
+    .success-detail { font-size: 13px; }
+    .success-status { font-size: 11px; padding: 8px 16px; }
+    
+    .standort-anzeige { padding: 8px 10px; font-size: 12px; }
   }
 </style>
 </head>
@@ -273,8 +318,6 @@
             <button class="step-btn step-btn-next" onclick="goToStep(2)" style="flex:1;">Weiter →</button>
           </div>
         </div>
-
-        <!-- STEP 2: DETAILS -->
         <div class="wizard-step-content" id="step2Content">
           <div style="font-size:14px;margin-bottom:16px;color:var(--muted);">Schritt 2: Details eingeben</div>
           
@@ -303,8 +346,7 @@
           </div>
 
           <div class="step-nav">
-            <button class="step-btn step-btn-back" onclick="goToStep(1)">← Zurück</button>
-            <button class="step-btn step-btn-next" onclick="goToStep(3)">Weiter →</button>
+            <button class="step-btn step-btn-next" onclick="goToStep(3)" style="flex:1;">Weiter →</button>
           </div>
         </div>
 
@@ -322,7 +364,6 @@
             <div style="margin-top:12px;font-size:12px;color:var(--muted);">Foto hilft dem Techniker sehr!</div>
           </div>
           <div class="step-nav">
-            <button class="step-btn step-btn-back" onclick="goToStep(2)">← Zurück</button>
             <button class="step-btn step-btn-next" onclick="goToStep(4)" style="flex:1;">Weiter →</button>
           </div>
         </div>
@@ -342,7 +383,6 @@
           <div class="error-msg" id="errorMsg" style="margin-bottom:16px;"></div>
 
           <div class="step-nav">
-            <button class="step-btn step-btn-back" onclick="goToStep(3)">← Zurück</button>
             <button class="btn-submit" id="submitBtn" onclick="submitTicket()" style="flex:1;margin:0;">
               ✅ ABSENDEN - Techniker benachrichtigen
             </button>
@@ -380,6 +420,38 @@
 
   function goToStep(step) {
     const standort = document.getElementById('standort').value;
+    const errEl = document.getElementById('errorMsg');
+    
+    if (step === 2) {
+      if (!selectedFehler) {
+        errEl.style.display = 'block';
+        errEl.textContent = '⚠️ Bitte erst Problem auswählen!';
+        return;
+      }
+    }
+    
+    if (step === 3) {
+      const automat = document.getElementById('automat').value.trim();
+      const melder = document.getElementById('melder').value.trim();
+      if (!automat) {
+        errEl.style.display = 'block';
+        errEl.textContent = '⚠️ Bitte Geräte-Nummer eingeben!';
+        return;
+      }
+      if (!melder) {
+        errEl.style.display = 'block';
+        errEl.textContent = '⚠️ Bitte deinen Namen eingeben!';
+        return;
+      }
+      if (spielbar === null) {
+        errEl.style.display = 'block';
+        errEl.textContent = '⚠️ Bitte angeben, ob der Automat noch spielbar ist!';
+        return;
+      }
+    }
+    
+    errEl.style.display = 'none';
+    
     const ticketSection = document.getElementById('ticketSection');
     const hasTickets = ticketSection && ticketSection.style.display !== 'none';
     
