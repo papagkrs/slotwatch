@@ -671,21 +671,10 @@
     renderTickets();
     updateStats();
 
-    let fotoUrl = '';
-    let fotoUploadFehler = null;
-    if (fotoBlob) {
-      try {
-        const formData = new FormData();
-        formData.append('file', fotoBlob, 'foto.jpg');
-        const uploadRes = await fetch('https://0x0.st', { method: 'POST', body: formData });
-        fotoUrl = await uploadRes.text();
-        fotoUrl = fotoUrl.trim();
-        if (!fotoUrl.startsWith('http')) { fotoUrl = ''; fotoUploadFehler = 'Keine gültige URL'; }
-      } catch(e) { fotoUrl = ''; fotoUploadFehler = e.message; }
-    }
+    // Build message (ohne foto erst mal)
+    const msg = `🎰 NEUE STÖRUNG #${id}\n\n📍 Standort: ${standort}\n🔧 Fehler: ${fehlertyp}\n${automat?'🎰 Automat: '+automat+'\n':''}${melder?'👤 Gemeldet: '+melder+'\n':''}🕹️ Spielbar: ${spielbarText}\n${beschreibung?'📝 '+beschreibung+'\n':''}${severityLabel}\n🕐 Uhrzeit: ${now}`;
 
-    const msg = `🎰 NEUE STÖRUNG #${id}\n\n📍 Standort: ${standort}\n🔧 Fehler: ${fehlertyp}\n${automat?'🎰 Automat: '+automat+'\n':''}${melder?'👤 Gemeldet: '+melder+'\n':''}🕹️ Spielbar: ${spielbarText}\n${beschreibung?'📝 '+beschreibung+'\n':''}${severityLabel}\n🕐 Uhrzeit: ${now}${fotoUrl ? '\n📷 Foto: ' + fotoUrl : ''}`;
-
+    // Send message FIRST (nicht warten auf foto)
     const resTelegram = await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -699,14 +688,35 @@
       return;
     }
 
-    if (fotoUploadFehler) {
-      alert('Foto-Upload fehlgeschlagen: ' + fotoUploadFehler + '\nNachricht wurde aber gesendet!');
+    // Upload foto im hintergrund (async, nicht blockierend)
+    let fotoUrl = null;
+    if (fotoBlob) {
+      (async () => {
+        try {
+          const formData = new FormData();
+          formData.append('file', fotoBlob, 'foto.jpg');
+          const uploadRes = await fetch('https://0x0.st', { method: 'POST', body: formData, timeout: 10000 });
+          fotoUrl = await uploadRes.text();
+          fotoUrl = fotoUrl.trim();
+          if (fotoUrl.startsWith('http')) {
+            // Foto-URL zu bestehendem ticket hinzufügen
+            const ticket = tickets.find(t => t.id === id);
+            if (ticket) {
+              ticket.fotoUrl = fotoUrl;
+              saveToStorage();
+              renderTickets();
+            }
+          }
+        } catch(e) {
+          console.log('Foto-Upload fehlgeschlagen (non-blocking):', e.message);
+        }
+      })();
     }
 
     document.getElementById('formSection').style.display = 'none';
     document.getElementById('successBox').style.display = 'block';
     document.getElementById('successDetail').innerHTML =
-      `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${fotoUrl ? '<br>📷 Foto wurde gesendet' : ''}`;
+      `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}<br>✅ Nachricht versendet!`;
 
     btn.disabled = false;
     btn.innerHTML = '🎰 Störung melden & Techniker anfordern';
