@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlotWatch – Standorte verwalten</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #0d0d0d;
+      --surface2: #161616;
+      --border: #2a2a2a;
+      --accent: #ffd700;
+      --accent2: #ff9500;
+      --green: #00e676;
+      --red: #ff4444;
+      --text: #ffffff;
+      --muted: #888888;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at top, #1a1a1a 0%, #000000 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .logo-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    .content {
+      padding: 32px 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: linear-gradient(145deg, #111111, #0a0a0a);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--accent);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      padding: 14px 16px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+    }
+
+    .btn {
+      padding: 14px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    .standorte-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .standort-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .standort-item:hover {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .standort-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .delete-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      background: rgba(255, 68, 68, 0.1);
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      color: var(--red);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .delete-btn:hover {
+      background: rgba(255, 68, 68, 0.2);
+      border-color: var(--red);
+      transform: scale(1.05);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .success-msg {
+      display: none;
+      padding: 12px 16px;
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      border-radius: 8px;
+      color: var(--green);
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .success-msg.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .content {
+        padding: 20px 12px;
+      }
+
+      .card {
+        padding: 20px;
+        border-radius: 16px;
+      }
+
+      input {
+        font-size: 14px;
+      }
+
+      .standort-item {
+        padding: 12px;
+      }
+
+      .standort-name {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">🎰</div>
+        <div>
+          <div class="logo-text">SlotWatch Admin</div>
+          <div class="logo-sub">Standorte verwalten</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-title">📊 Übersicht</div>
+        <div class="stats">
+          <div class="stat-box">
+            <div class="stat-number" id="totalCount">0</div>
+            <div class="stat-label">Standorte</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">⚡</div>
+            <div class="stat-label">Live speichern</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">➕ Neue Standort hinzufügen</div>
+        <div class="success-msg" id="successMsg">✅ Standort hinzugefügt!</div>
+        <div class="input-group">
+          <input type="text" id="newStandort" placeholder="z.B. Meine neue Location" />
+          <button class="btn" onclick="addStandort()">+</button>
+        </div>
+        <div style="font-size: 12px; color: var(--muted);">
+          💡 Gib einen Namen ein und klick "+" → Fertig!
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📍 Alle Standorte</div>
+        <div class="standorte-list" id="standorteList">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div>Keine Standorte vorhanden</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let standorte = [];
+
+    // Load from localStorage
+    function loadStandorte() {
+      const saved = localStorage.getItem('slotwatch_standorte');
+      if (saved) {
+        try {
+          standorte = JSON.parse(saved);
+        } catch (e) {
+          standorte = [];
+        }
+      }
+      renderList();
+    }
+
+    // Save to localStorage
+    function saveStandorte() {
+      localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+    }
+
+    // Add new location
+    function addStandort() {
+      const input = document.getElementById('newStandort');
+      const name = input.value.trim();
+
+      if (!name) {
+        alert('⚠️ Bitte einen Namen eingeben');
+        return;
+      }
+
+      if (standorte.includes(name)) {
+        alert('⚠️ Dieser Standort existiert bereits');
+        return;
+      }
+
+      standorte.push(name);
+      saveStandorte();
+      input.value = '';
+      input.focus();
+
+      // Show success message
+      const msg = document.getElementById('successMsg');
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 2000);
+
+      renderList();
+    }
+
+    // Delete location
+    function deleteStandort(index) {
+      if (confirm('🗑️ Wirlich löschen: "' + standorte[index] + '"?')) {
+        standorte.splice(index, 1);
+        saveStandorte();
+        renderList();
+      }
+    }
+
+    // Render list
+    function renderList() {
+      const list = document.getElementById('standorteList');
+      const count = document.getElementById('totalCount');
+
+      count.textContent = standorte.length;
+
+      if (standorte.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div>Keine Standorte vorhanden</div></div>';
+        return;
+      }
+
+      list.innerHTML = standorte.map((name, idx) => `
+        <div class="standort-item">
+          <div class="standort-name">📍 ${name}</div>
+          <button class="delete-btn" onclick="deleteStandort(${idx})" title="Löschen">🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    // Enter key to add
+    document.getElementById('newStandort')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addStandort();
+    });
+
+    // Init
+    loadStandorte();
+  </script>
+</body>
+</html>

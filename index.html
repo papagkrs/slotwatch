@@ -671,31 +671,42 @@
     renderTickets();
     updateStats();
 
-    try {
-      const response = await fetch('/api/ticket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id, standort, fehlertyp, automat, melder, spielbar, beschreibung, now, severity, spielbarText, severityLabel,
-          foto: fotoData
-        })
-      });
+    let fotoUrl = '';
+    let fotoUploadFehler = null;
+    if (fotoBlob) {
+      try {
+        const formData = new FormData();
+        formData.append('file', fotoBlob, 'foto.jpg');
+        const uploadRes = await fetch('https://0x0.st', { method: 'POST', body: formData });
+        fotoUrl = await uploadRes.text();
+        fotoUrl = fotoUrl.trim();
+        if (!fotoUrl.startsWith('http')) { fotoUrl = ''; fotoUploadFehler = 'Keine gültige URL'; }
+      } catch(e) { fotoUrl = ''; fotoUploadFehler = e.message; }
+    }
 
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || 'Unbekannter Fehler');
-      }
+    const msg = `🎰 NEUE STÖRUNG #${id}\n\n📍 Standort: ${standort}\n🔧 Fehler: ${fehlertyp}\n${automat?'🎰 Automat: '+automat+'\n':''}${melder?'👤 Gemeldet: '+melder+'\n':''}🕹️ Spielbar: ${spielbarText}\n${beschreibung?'📝 '+beschreibung+'\n':''}${severityLabel}\n🕐 Uhrzeit: ${now}${fotoUrl ? '\n📷 Foto: ' + fotoUrl : ''}`;
 
-      document.getElementById('formSection').style.display = 'none';
-      document.getElementById('successBox').style.display = 'block';
-      document.getElementById('successDetail').innerHTML =
-        `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${result.foto ? '<br>📷 Foto wurde gesendet' : '<br>⚠️ Foto-Upload fehlgeschlagen'}`;
-    } catch(err) {
-      alert('Fehler beim Versendet: ' + err.message + '\nBitte überprüfe die Backend-Verbindung.');
+    const resTelegram = await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id:'8725948866', text: msg})
+    });
+    const resultTelegram = await resTelegram.json();
+    if (!resultTelegram.ok) {
+      alert('Telegram Fehler: ' + resultTelegram.description);
       btn.disabled = false;
       btn.innerHTML = '✅ ABSENDEN - Techniker benachrichtigen';
       return;
     }
+
+    if (fotoUploadFehler) {
+      alert('Foto-Upload fehlgeschlagen: ' + fotoUploadFehler + '\nNachricht wurde aber gesendet!');
+    }
+
+    document.getElementById('formSection').style.display = 'none';
+    document.getElementById('successBox').style.display = 'block';
+    document.getElementById('successDetail').innerHTML =
+      `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${fotoUrl ? '<br>📷 Foto wurde gesendet' : ''}`;
 
     btn.disabled = false;
     btn.innerHTML = '🎰 Störung melden & Techniker anfordern';
