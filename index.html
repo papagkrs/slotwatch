@@ -239,7 +239,7 @@
     <div id="formSection">
       <div class="section-title">Störung melden</div>
       <div class="report-form">
-        <div class="form-title">🎰 Defekt melden - Schritt für Schritt</div>
+        <div class="form-title">🎰 Defekt melden - 3 einfache Schritte</div>
 
         <!-- WIZARD STEPS -->
         <div class="wizard-steps">
@@ -253,11 +253,7 @@
           </div>
           <div class="wizard-step" id="step3">
             <span class="wizard-step-nr">3️⃣</span>
-            Foto
-          </div>
-          <div class="wizard-step" id="step4">
-            <span class="wizard-step-nr">4️⃣</span>
-            Absenden
+            Foto + Senden
           </div>
         </div>
 
@@ -272,7 +268,7 @@
 
         <!-- STEP 1: PROBLEM -->
         <div class="wizard-step-content active" id="step1Content">
-          <div style="font-size:14px;margin-bottom:16px;color:var(--muted);">Schritt 1: Was ist passiert?</div>
+          <div style="font-size:16px;margin-bottom:16px;color:var(--muted);">Was ist kaputt?</div>
           
           <div class="error-group" style="border:2px solid #ff3d3d;border-radius:12px;padding:14px;margin-bottom:16px;background:rgba(255,61,61,0.05);">
             <div class="error-group-title" style="color:#ff4444;font-size:14px;font-weight:800;text-shadow: 0 0 20px rgba(255,68,68,0.5);">⚠️ Gerät KAPUT</div>
@@ -315,76 +311,59 @@
           </div>
 
           <div class="step-nav">
-            <button class="step-btn step-btn-next" onclick="goToStep(2)" style="flex:1;">Weiter →</button>
+            <button class="step-btn step-btn-next" onclick="goToStep(2)" style="flex:1;padding:18px;font-size:18px;">Weiter →</button>
           </div>
         </div>
         <div class="wizard-step-content" id="step2Content">
-          <div style="font-size:14px;margin-bottom:16px;color:var(--muted);">Schritt 2: Details eingeben</div>
-          
-          <div style="margin-bottom:16px;">
-            <label>Nummer am Gerät *</label>
-            <input type="text" id="automat" placeholder="z.B. A-07" style="font-size:18px;padding:14px;">
-            <div class="info-box">💡 Die Nummer steht VORNE am Gerät (z.B. A-01)</div>
+          <div style="font-size:16px;margin-bottom:16px;color:var(--muted);">Welches Gerät? Wer bist du?</div>
+
+          <div style="margin-bottom:20px;">
+            <label style="font-size:14px;">🔢 Nummer am Gerät</label>
+            <input type="text" id="automat" placeholder="z.B. A-07" style="font-size:22px;padding:16px;">
+            <div class="info-box" style="font-size:15px;">💡 Die Nummer steht VORNE am Gerät (z.B. A-01)</div>
           </div>
 
-          <div style="margin-bottom:16px;">
-            <label>Dein Name *</label>
-            <input type="text" id="melder" placeholder="Dein Name" style="font-size:18px;padding:14px;">
+          <div style="margin-bottom:20px;">
+            <label style="font-size:14px;">👤 Dein Name</label>
+            <input type="text" id="melder" placeholder="Dein Name" style="font-size:22px;padding:16px;">
           </div>
 
-          <div style="margin-bottom:16px;">
-            <label>Funktioniert noch? *</label>
+          <div style="margin-bottom:20px;">
+            <label style="font-size:14px;">🎮 Kann man noch spielen?</label>
             <div class="spielbar-row">
-              <button type="button" class="btn-spielbar" id="btnJa" onclick="setSpielbar(true)" style="padding:16px;font-size:16px;">✅ JA - noch spielbar</button>
-              <button type="button" class="btn-spielbar" id="btnNein" onclick="setSpielbar(false)" style="padding:16px;font-size:16px;">❌ NEIN - geht nicht</button>
+              <button type="button" class="btn-spielbar" id="btnJa" onclick="setSpielbar(true)" style="padding:20px;font-size:18px;">✅ JA</button>
+              <button type="button" class="btn-spielbar" id="btnNein" onclick="setSpielbar(false)" style="padding:20px;font-size:18px;">❌ NEIN</button>
             </div>
           </div>
 
-          <div style="margin-bottom:16px;">
-            <label>No etwas Wichtiges? (optional)</label>
-            <textarea id="beschreibung" placeholder="z.B. schon seit heute Morgen,Display zeigt Fehler..." style="min-height:60px;"></textarea>
+          <div style="margin-bottom:20px;">
+            <label style="font-size:14px;">📝 Noch was wichtig? (muss nicht)</label>
+            <textarea id="beschreibung" placeholder="z.B. schon seit heute Morgen..." style="min-height:60px;font-size:16px;"></textarea>
           </div>
 
           <div class="step-nav">
-            <button class="step-btn step-btn-next" onclick="goToStep(3)" style="flex:1;">Weiter →</button>
+            <button class="step-btn step-btn-next" onclick="goToStep(3)" style="flex:1;padding:18px;font-size:18px;">Weiter →</button>
           </div>
         </div>
 
-        <!-- STEP 3: FOTO -->
+        <!-- STEP 3: FOTO + ABSENDEN -->
         <div class="wizard-step-content" id="step3Content">
           <div class="photo-step">
-            <div style="font-size:14px;margin-bottom:16px;color:var(--muted);">Schritt 3: Foto machen (optional)</div>
+            <div style="font-size:16px;margin-bottom:16px;color:var(--muted);">📷 Foto machen (wenn du willst)</div>
             <input type="file" id="foto" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
             <button type="button" class="photo-btn-large" onclick="document.getElementById('foto').click()" id="photoBtn">
               <span class="photo-icon">📷</span>
-              <span>Kamera öffnen</span>
-              <span style="font-size:12px;opacity:0.7;">(oder Datei auswählen)</span>
+              <span style="font-size:20px;">Foto machen</span>
+              <span style="font-size:14px;opacity:0.7;">Muss nicht sein!</span>
             </button>
             <img id="photoPreview" class="photo-preview">
-            <div style="margin-top:12px;font-size:12px;color:var(--muted);">Foto hilft dem Techniker sehr!</div>
-          </div>
-          <div class="step-nav">
-            <button class="step-btn step-btn-next" onclick="goToStep(4)" style="flex:1;">Weiter →</button>
-          </div>
-        </div>
-
-        <!-- STEP 4: REVIEW -->
-        <div class="wizard-step-content" id="step4Content">
-          <div style="font-size:14px;margin-bottom:16px;color:var(--muted);">Schritt 4: Absenden</div>
-          
-          <div class="info-box" style="text-align:left;">
-            <div style="margin-bottom:8px;"><strong>📍 Standort:</strong> <span id="reviewStandort">-</span></div>
-            <div style="margin-bottom:8px;"><strong>📷 Problem:</strong> <span id="reviewProblem">-</span></div>
-            <div style="margin-bottom:8px;"><strong>🔢 Gerät:</strong> <span id="reviewAutomat">-</span></div>
-            <div style="margin-bottom:8px;"><strong>👤 Gemeldet von:</strong> <span id="reviewMelder">-</span></div>
-            <div style="margin-bottom:8px;"><strong>🎮 Status:</strong> <span id="reviewSpielbar">-</span></div>
           </div>
 
-          <div class="error-msg" id="errorMsg" style="margin-bottom:16px;"></div>
+          <div class="error-msg" id="errorMsg" style="margin:16px 0;font-size:16px;"></div>
 
           <div class="step-nav">
-            <button class="btn-submit" id="submitBtn" onclick="submitTicket()" style="flex:1;margin:0;">
-              ✅ ABSENDEN - Techniker benachrichtigen
+            <button class="btn-submit" id="submitBtn" onclick="submitTicket()" style="flex:1;margin:0;padding:20px;font-size:20px;">
+              📨 JETZT ABSENDEN
             </button>
           </div>
         </div>
@@ -461,14 +440,6 @@
     if (!standort && step > 1 && hasTickets) {
       alert('Bitte QR-Code scannen für Standort!');
       return;
-    }
-
-    if (step === 4) {
-      document.getElementById('reviewStandort').textContent = standort;
-      document.getElementById('reviewProblem').textContent = selectedFehler || 'Nicht ausgewählt';
-      document.getElementById('reviewAutomat').textContent = document.getElementById('automat').value || 'Nicht angegeben';
-      document.getElementById('reviewMelder').textContent = document.getElementById('melder').value || 'Nicht angegeben';
-      document.getElementById('reviewSpielbar').textContent = spielbar === true ? 'Noch spielbar' : spielbar === false ? 'Nicht mehr spielbar' : 'Nicht angegeben';
     }
 
     document.querySelectorAll('.wizard-step').forEach((el, i) => {
@@ -574,6 +545,10 @@
       document.getElementById('headerStats').style.display = 'none';
       document.getElementById('logoSub').textContent = 'Störung melden';
     }
+
+    // Name aus letzter Meldung laden (muss nicht nochmal tippen!)
+    const savedName = localStorage.getItem('slotwatch_melder');
+    if (savedName) document.getElementById('melder').value = savedName;
   });
 
   function updateStats() {
@@ -686,9 +661,12 @@
       if (!resultTelegram.ok) {
         alert('❌ Telegram Fehler: ' + resultTelegram.description);
         btn.disabled = false;
-        btn.innerHTML = '✅ ABSENDEN - Techniker benachrichtigen';
+        btn.innerHTML = '📨 JETZT ABSENDEN';
         return;
       }
+
+      // Name merken (muss nicht nochmal tippen)
+      localStorage.setItem('slotwatch_melder', melder);
 
       // 2. Send photo (wenn vorhanden) - direkt zu Telegram, nicht zu 0x0.st
       if (fotoBlob) {
@@ -712,11 +690,11 @@
     } catch(err) {
       alert('❌ Fehler: ' + err.message);
       btn.disabled = false;
-      btn.innerHTML = '✅ ABSENDEN - Techniker benachrichtigen';
+      btn.innerHTML = '📨 JETZT ABSENDEN';
     }
 
     btn.disabled = false;
-    btn.innerHTML = '🎰 Störung melden & Techniker anfordern';
+    btn.innerHTML = '📨 JETZT ABSENDEN';
   }
 </script>
 </body>
