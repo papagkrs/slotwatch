@@ -671,19 +671,17 @@
     renderTickets();
     updateStats();
 
-    // Build message (ohne foto erst mal)
+    // Build message
     const msg = `🎰 NEUE STÖRUNG #${id}\n\n📍 Standort: ${standort}\n🔧 Fehler: ${fehlertyp}\n${automat?'🎰 Automat: '+automat+'\n':''}${melder?'👤 Gemeldet: '+melder+'\n':''}🕹️ Spielbar: ${spielbarText}\n${beschreibung?'📝 '+beschreibung+'\n':''}${severityLabel}\n🕐 Uhrzeit: ${now}`;
 
     try {
-      // Send message FIRST (nicht warten auf foto)
-      console.log('[DEBUG] Sende Nachricht zu Telegram...');
+      // 1. Send text message
       const resTelegram = await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({chat_id:'8725948866', text: msg})
       });
       const resultTelegram = await resTelegram.json();
-      console.log('[DEBUG] Telegram Response:', resultTelegram);
 
       if (!resultTelegram.ok) {
         alert('❌ Telegram Fehler: ' + resultTelegram.description);
@@ -692,49 +690,26 @@
         return;
       }
 
+      // 2. Send photo (wenn vorhanden) - direkt zu Telegram, nicht zu 0x0.st
+      if (fotoBlob) {
+        const formData = new FormData();
+        formData.append('chat_id', '8725948866');
+        formData.append('photo', fotoBlob, 'photo.jpg');
+        formData.append('caption', `📸 Foto zu Störung #${id}`);
+
+        fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendPhoto', {
+          method: 'POST',
+          body: formData
+        }).catch(e => console.log('Foto-Send Fehler (non-blocking):', e.message));
+      }
+
       // Show success
       document.getElementById('formSection').style.display = 'none';
       document.getElementById('successBox').style.display = 'block';
       document.getElementById('successDetail').innerHTML =
-        `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}<br>✅ Nachricht versendet!`;
+        `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${fotoBlob ? '<br>📷 Mit Foto' : ''}<br>✅ Versendet!`;
 
-      // Upload foto async im hintergrund (nicht blockierend)
-      if (fotoBlob) {
-        (async () => {
-          try {
-            console.log('[DEBUG] Starte Foto-Upload...');
-            const formData = new FormData();
-            formData.append('file', fotoBlob, 'photo.jpg');
-
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 15000);
-
-            const uploadRes = await fetch('https://0x0.st', {
-              method: 'POST',
-              body: formData,
-              signal: controller.signal
-            });
-            clearTimeout(timeout);
-
-            const fotoUrl = (await uploadRes.text()).trim();
-            console.log('[DEBUG] Foto-URL:', fotoUrl);
-
-            if (fotoUrl.startsWith('http')) {
-              const ticket = tickets.find(t => t.id === id);
-              if (ticket) {
-                ticket.fotoUrl = fotoUrl;
-                saveToStorage();
-                renderTickets();
-                console.log('[DEBUG] Foto zu Ticket hinzugefügt');
-              }
-            }
-          } catch(e) {
-            console.log('[DEBUG] Foto-Upload Fehler (non-blocking):', e.message);
-          }
-        })();
-      }
     } catch(err) {
-      console.error('[ERROR] Unerwarteter Fehler:', err);
       alert('❌ Fehler: ' + err.message);
       btn.disabled = false;
       btn.innerHTML = '✅ ABSENDEN - Techniker benachrichtigen';
