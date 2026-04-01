@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="de"><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<html lang="de">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SlotWatch – Spielautomaten Service</title>
-<link href="vvvvvvvvvvvvvvvvvvvvvvvvvvvv_files/css2.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #000000; --surface: #0d0d0d; --surface2: #161616; --border: #2a2a2a;
@@ -395,7 +395,9 @@
     <!-- TICKETS -->
     <div id="ticketSection">
       <div class="section-title">Offene Tickets</div>
-      <div id="ticketList"><div class="empty"><div class="empty-icon">🎰</div><div>Keine offenen Störungen</div></div></div>
+      <div id="ticketList">
+        <div class="empty"><div class="empty-icon">🎰</div><div>Keine Störungen</div></div>
+      </div>
       <button class="clear-data" onclick="clearAllData()">🗑️ Alle Daten löschen</button>
     </div>
 
@@ -415,6 +417,7 @@
   let spielbar = null;
   let ticketCounter = 4000;
   let tickets = [];
+  let fotoBlob = null;
   let fotoData = null;
   let selectedFehler = null;
 
@@ -480,6 +483,7 @@
   function handlePhoto(input) {
     const file = input.files[0];
     if (file) {
+      fotoBlob = file;
       const reader = new FileReader();
       reader.onload = function(e) {
         fotoData = e.target.result;
@@ -540,6 +544,7 @@
     currentStep = 1;
     spielbar = null;
     fotoData = null;
+    fotoBlob = null;
     selectedFehler = null;
     document.getElementById('btnJa').className = 'btn-spielbar';
     document.getElementById('btnNein').className = 'btn-spielbar';
@@ -666,36 +671,35 @@
     renderTickets();
     updateStats();
 
-    let fotoUrl = '';
-    if (fotoData) {
-      try {
-        const blob = await (await fetch(fotoData)).blob();
-        const formData = new FormData();
-        formData.append('file', blob, 'foto.jpg');
-        const uploadRes = await fetch('https://0x0.st', { method: 'POST', body: formData });
-        fotoUrl = await uploadRes.text();
-        fotoUrl = fotoUrl.trim();
-      } catch(e) { fotoUrl = ''; }
-    }
-
-    const msg = `🎰 NEUE STÖRUNG #${id}\n\n📍 Standort: ${standort}\n🔧 Fehler: ${fehlertyp}\n${automat?'🎰 Automat: '+automat+'\n':''}${melder?'👤 Gemeldet: '+melder+'\n':''}🕹️ Spielbar: ${spielbarText}\n${beschreibung?'📝 '+beschreibung+'\n':''}${severityLabel}\n🕐 Uhrzeit: ${now}${fotoUrl ? '\n📷 Foto: ' + fotoUrl : ''}`;
-
     try {
-      await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
+      const response = await fetch('/api/ticket', {
         method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({chat_id:'8725948866', text: msg})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id, standort, fehlertyp, automat, melder, spielbar, beschreibung, now, severity, spielbarText, severityLabel,
+          foto: fotoData
+        })
       });
-    } catch(e) {}
 
-    document.getElementById('formSection').style.display = 'none';
-    document.getElementById('successBox').style.display = 'block';
-    document.getElementById('successDetail').innerHTML =
-      `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${fotoUrl ? '<br>📷 Foto wurde gesendet' : ''}`;
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Unbekannter Fehler');
+      }
+
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('successBox').style.display = 'block';
+      document.getElementById('successDetail').innerHTML =
+        `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${result.foto ? '<br>📷 Foto wurde gesendet' : '<br>⚠️ Foto-Upload fehlgeschlagen'}`;
+    } catch(err) {
+      alert('Fehler beim Versendet: ' + err.message + '\nBitte überprüfe die Backend-Verbindung.');
+      btn.disabled = false;
+      btn.innerHTML = '✅ ABSENDEN - Techniker benachrichtigen';
+      return;
+    }
 
     btn.disabled = false;
     btn.innerHTML = '🎰 Störung melden & Techniker anfordern';
   }
 </script>
-
-</body></html>
+</body>
+</html>
