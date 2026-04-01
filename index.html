@@ -665,9 +665,9 @@
     const spielbarText = spielbar===true ? '✅ Ja' : spielbar===false ? '❌ Nein' : 'Nicht angegeben';
     const severityLabel = severity==='critical' ? '🔴 KRITISCH' : '🟠 MITTEL';
 
-    const newTicket = { id, location: standort, fehlertyp, automat, melder, desc: beschreibung, spielbar, severity, time: now, foto: fotoData };
+    const newTicket = { id, location: standort, fehlertyp, automat, melder, desc: beschreibung, spielbar, severity, time: now, foto: fotoBlob ? true : false };
     tickets.push(newTicket);
-    saveToStorage();
+    try { saveToStorage(); } catch(e) { console.log('Storage voll, aber kein Problem'); }
     renderTickets();
     updateStats();
 
