@@ -1,0 +1,17 @@
+[
+  { "update_id": 1, "callback_query": { "id": "cb1", "from": { "first_name": "Kosta" }, "data": "dran",
+    "message": { "message_id": 101, "chat": { "id": 8725948866 },
+      "text": "🎰 NEUE STÖRUNG #4001\n\n📍 Standort: Halle MF\n🔧 Fehler: Schein\n🎰 Automat: A-07\n👤 Gemeldet: Maria\n🕹️ Spielbar: ✅ Ja\n🟠 MITTEL\n🕐 Uhrzeit: 10:00" } } },
+  { "update_id": 2, "callback_query": { "id": "cb2", "from": { "first_name": "Kosta" }, "data": "done",
+    "message": { "message_id": 101, "chat": { "id": 8725948866 },
+      "text": "🎰 NEUE STÖRUNG #4001\n\n📍 Standort: Halle MF\n🔧 Fehler: Schein\n🎰 Automat: A-07\n👤 Gemeldet: Maria\n🕹️ Spielbar: ✅ Ja\n🟠 MITTEL\n🕐 Uhrzeit: 10:00\n\n🔧 BIN DRAN — Kosta (10:05, 08.08.)" } } },
+  { "update_id": 3, "callback_query": { "id": "cb3", "from": { "first_name": "Kosta" }, "data": "done",
+    "message": { "message_id": 102, "chat": { "id": 8725948866 },
+      "text": "🎰 NEUE STÖRUNG #4002\n\n📍 Standort: Halle MF\n🔧 Fehler: Münzen\n🎰 Automat: a-07\n👤 Gemeldet: Maria\n🕹️ Spielbar: ❌ Nein\n🔴 KRITISCH\n🕐 Uhrzeit: 11:00" } } },
+  { "update_id": 4, "callback_query": { "id": "cb4", "from": { "first_name": "Kosta" }, "data": "done",
+    "message": { "message_id": 103, "chat": { "id": 8725948866 },
+      "text": "🎰 NEUE STÖRUNG #4003\n\n📍 Standort: Halle MF\n🔧 Fehler: Alarm\n🎰 Automat: A-07\n👤 Gemeldet: Josef\n🕹️ Spielbar: ✅ Ja\n🟠 MITTEL\n🕐 Uhrzeit: 12:00" } } },
+  { "update_id": 5, "callback_query": { "id": "cb5", "from": { "first_name": "Kosta" }, "data": "done",
+    "message": { "message_id": 103, "chat": { "id": 8725948866 },
+      "text": "doppelter Klick — sollte ignoriert werden 🎰 Automat: A-07\n📍 Standort: Halle MF" } } }
+]

@@ -654,7 +654,10 @@
       const resTelegram = await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({chat_id:'8725948866', text: msg})
+        body: JSON.stringify({chat_id:'8725948866', text: msg, reply_markup: {inline_keyboard: [[
+          {text:'🔧 Bin dran', callback_data:'dran'},
+          {text:'✅ Erledigt', callback_data:'done'}
+        ]]}})
       });
       const resultTelegram = await resTelegram.json();
 

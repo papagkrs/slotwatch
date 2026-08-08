@@ -1,0 +1,37 @@
+# SlotWatch Wächter — GitHub als kostenlose Zeitschaltuhr.
+# Läuft alle 5 Minuten, verarbeitet gedrückte Telegram-Knöpfe und pflegt das Logbuch.
+# Hinweis: GitHub schaltet den Zeitplan nach ~60 Tagen ohne Repo-Aktivität ab
+# und schickt dann eine E-Mail — einfach auf "Enable" klicken.
+name: Telegram Wächter
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # alle 5 Minuten (GitHub verzögert manchmal ein paar Minuten)
+  workflow_dispatch:         # manueller Start über die GitHub-Webseite möglich
+
+permissions:
+  contents: write
+
+concurrency:
+  group: waechter
+  cancel-in-progress: false
+
+jobs:
+  waechter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wächter ausführen
+        run: node waechter/waechter.js
+
+      - name: Logbuch speichern (nur wenn geändert)
+        run: |
+          if ! git diff --quiet waechter/meldungen.json; then
+            git config user.name "SlotWatch Waechter"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add waechter/meldungen.json
+            git commit -m "🤖 Wächter: Logbuch aktualisiert"
+            git pull --rebase
+            git push
+          fi
