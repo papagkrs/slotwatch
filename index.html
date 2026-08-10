@@ -654,7 +654,7 @@
       const resTelegram = await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({chat_id:'8725948866', text: msg, reply_markup: {inline_keyboard: [[
+        body: JSON.stringify({chat_id:'8893346208', text: msg, reply_markup: {inline_keyboard: [[
           {text:'🔧 Bin dran', callback_data:'dran'},
           {text:'✅ Erledigt', callback_data:'done'}
         ]]}})
@@ -674,7 +674,7 @@
       // 2. Send photo (wenn vorhanden) - direkt zu Telegram, nicht zu 0x0.st
       if (fotoBlob) {
         const formData = new FormData();
-        formData.append('chat_id', '8725948866');
+        formData.append('chat_id', '8893346208');
         formData.append('photo', fotoBlob, 'photo.jpg');
         formData.append('caption', `📸 Foto zu Störung #${id}`);
 
