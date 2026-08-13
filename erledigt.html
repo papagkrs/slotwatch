@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlotWatch – Status</title>
+<style>
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff;
+         min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+  .box { text-align: center; padding: 32px 24px; max-width: 420px; }
+  .icon { font-size: 72px; margin-bottom: 16px; }
+  .titel { font-size: 24px; font-weight: 800; margin-bottom: 12px; color: #ffd700; }
+  .text { font-size: 16px; color: #aaa; line-height: 1.6; }
+  .ok { color: #00e676; }
+  .fehler { color: #ff4444; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="icon" id="icon">⏳</div>
+  <div class="titel" id="titel">Wird gespeichert…</div>
+  <div class="text" id="text">Einen Moment bitte.</div>
+</div>
+<script>
+  // Diese Seite wird über die Link-Knöpfe unter einer Störungs-Meldung geöffnet.
+  // Sie schreibt den Status SOFORT in den Telegram-Chat — ganz ohne Server.
+  const TOKEN = '8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8'; // gleicher Bot wie index.html
+  const WARN_AB = 3; // ab der wievielten Störung pro Gerät und Monat gewarnt wird
+
+  const p = new URLSearchParams(location.search);
+  const aktion = p.get('a');                 // 'dran' oder 'done'
+  const chat = p.get('chat');
+  const msg = parseInt(p.get('msg'));
+  const ticket = p.get('ticket') || '?';
+  const geraet = (p.get('geraet') || 'unbekannt').trim().toUpperCase();
+  const standort = p.get('standort') || 'unbekannt';
+
+  function zeige(icon, titel, text, klasse) {
+    document.getElementById('icon').textContent = icon;
+    const t = document.getElementById('titel');
+    t.textContent = titel; if (klasse) t.className = 'titel ' + klasse;
+    document.getElementById('text').innerHTML = text;
+  }
+
+  async function api(methode, daten) {
+    const res = await fetch('https://api.telegram.org/bot' + TOKEN + '/' + methode, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(daten)
+    });
+    return res.json();
+  }
+
+  function knopfZeile(a) { // Link-Knöpfe neu bauen (für "nur noch Erledigt anzeigen")
+    const basis = 'https://papagkrs.github.io/slotwatch/erledigt.html';
+    const url = basis + '?a=' + a + '&chat=' + chat + '&msg=' + msg + '&ticket=' + ticket +
+                '&geraet=' + encodeURIComponent(geraet) + '&standort=' + encodeURIComponent(standort);
+    return { text: '✅ Erledigt', url: url };
+  }
+
+  async function los() {
+    if (!aktion || !chat || !msg) {
+      zeige('❓', 'Link unvollständig', 'Diese Seite wird über die Knöpfe in Telegram geöffnet.', 'fehler');
+      return;
+    }
+
+    const statusKey = 'sw_status_' + chat + '_' + msg;
+    const alterStatus = localStorage.getItem(statusKey);
+    if (alterStatus === 'done') {
+      zeige('👍', 'Schon erledigt', 'Diese Störung wurde bereits als erledigt markiert.<br>Du kannst das Fenster schließen.', 'ok');
+      return;
+    }
+
+    const zeit = new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+    const datum = new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' });
+
+    // 1. Status als Antwort in den Chat schreiben (das Wichtigste zuerst)
+    const statusText = aktion === 'done'
+      ? `✅ ERLEDIGT — Störung #${ticket}, Automat ${geraet} (${zeit}, ${datum})`
+      : `🔧 BIN DRAN — Störung #${ticket}, Automat ${geraet} (${zeit}, ${datum})`;
+    const antwort = await api('sendMessage', { chat_id: chat, reply_to_message_id: msg, text: statusText });
+    if (!antwort.ok) {
+      zeige('❌', 'Fehler', 'Konnte nicht speichern: ' + (antwort.description || 'unbekannt') + '<br>Bitte nochmal versuchen.', 'fehler');
+      return;
+    }
+
+    // 2. Knöpfe an der Original-Meldung anpassen (klappt bei sehr alten Meldungen evtl. nicht — nicht schlimm)
+    const neueKnoepfe = aktion === 'done' ? [] : [[knopfZeile('done')]];
+    api('editMessageReplyMarkup', { chat_id: chat, message_id: msg, reply_markup: { inline_keyboard: neueKnoepfe } }).catch(() => {});
+
+    // 3. Mitzählen (nur 1x pro Meldung) und ab der 3. Störung im Monat warnen
+    if (!alterStatus) {
+      const monat = new Date().toISOString().slice(0, 7);
+      let log = [];
+      try { log = JSON.parse(localStorage.getItem('sw_log') || '[]'); } catch (e) {}
+      log.push({ geraet: geraet, standort: standort, monat: monat, ticket: ticket });
+      localStorage.setItem('sw_log', JSON.stringify(log));
+      const anzahl = log.filter(e => e.geraet === geraet && e.standort === standort && e.monat === monat).length;
+      if (anzahl >= WARN_AB && geraet !== 'UNBEKANNT') {
+        await api('sendMessage', { chat_id: chat, reply_to_message_id: msg,
+          text: `⚠️ ACHTUNG: Automat ${geraet} (${standort}) hat schon ${anzahl} Störungen diesen Monat! Vielleicht genauer anschauen.` });
+      }
+    }
+
+    localStorage.setItem(statusKey, aktion === 'done' ? 'done' : 'dran');
+
+    if (aktion === 'done') {
+      zeige('✅', 'Erledigt gespeichert!', 'Steht jetzt im Telegram-Chat.<br>Du kannst das Fenster schließen.', 'ok');
+    } else {
+      zeige('🔧', '„Bin dran" gespeichert!', 'Steht jetzt im Telegram-Chat.<br>Du kannst das Fenster schließen.', 'ok');
+    }
+  }
+
+  los();
+</script>
+</body>
+</html>

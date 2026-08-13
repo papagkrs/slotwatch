@@ -654,10 +654,7 @@
       const resTelegram = await fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendMessage', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({chat_id:'8893346208', text: msg, reply_markup: {inline_keyboard: [[
-          {text:'🔧 Bin dran', callback_data:'dran'},
-          {text:'✅ Erledigt', callback_data:'done'}
-        ]]}})
+        body: JSON.stringify({chat_id:'8893346208', text: msg})
       });
       const resultTelegram = await resTelegram.json();
 
@@ -670,6 +667,21 @@
 
       // Name merken (muss nicht nochmal tippen)
       localStorage.setItem('slotwatch_melder', melder);
+
+      // Link-Knöpfe "Bin dran"/"Erledigt" an die Nachricht hängen.
+      // Ein Druck öffnet erledigt.html — die schreibt den Status SOFORT in den Chat.
+      const msgId = resultTelegram.result.message_id;
+      const knopfUrl = (a) => 'https://papagkrs.github.io/slotwatch/erledigt.html?a=' + a +
+        '&chat=8893346208&msg=' + msgId + '&ticket=' + id +
+        '&geraet=' + encodeURIComponent(automat) + '&standort=' + encodeURIComponent(standort);
+      fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/editMessageReplyMarkup', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({chat_id:'8893346208', message_id: msgId, reply_markup: {inline_keyboard: [[
+          {text:'🔧 Bin dran', url: knopfUrl('dran')},
+          {text:'✅ Erledigt', url: knopfUrl('done')}
+        ]]}})
+      }).catch(e => console.log('Knöpfe anhängen fehlgeschlagen (non-blocking):', e.message));
 
       // 2. Send photo (wenn vorhanden) - direkt zu Telegram, nicht zu 0x0.st
       if (fotoBlob) {
