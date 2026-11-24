@@ -9,9 +9,16 @@ TELEGRAM_CHAT_ID = "8893346208"
 SEITE = "https://papagkrs.github.io/slotwatch"      # dort liegen index.html und erledigt.html
 ERLAUBTE_HERKUNFT = "https://papagkrs.github.io"    # nur diese Webseite darf den Dienst aus dem Browser nutzen
 
+ERINNERUNG_KRITISCH_STD = "2"     # nicht spielbar: Erinnerung, wenn nach so vielen Stunden niemand "Bin dran" gedrückt hat (0 = aus)
+ERINNERUNG_NORMAL_STD = "24"      # spielbar: dasselbe (0 = aus)
+AUFBEWAHRUNG_MONATE = "12"        # danach werden Namen und Freitext aus alten Meldungen entfernt (0 = nie)
+
 # Geheim (NICHT hier eintragen): TELEGRAM_TOKEN, ADMIN_KEY
 #   npx wrangler secret put TELEGRAM_TOKEN
 #   npx wrangler secret put ADMIN_KEY
+
+[triggers]
+crons = ["*/30 * * * *"]   # alle 30 Minuten: Erinnerungen + Aufbewahrungsfrist
 
 [[d1_databases]]
 binding = "DB"

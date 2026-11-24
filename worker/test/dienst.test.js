@@ -30,7 +30,7 @@ before(async () => {
   };
 });
 after(async () => { globalThis.fetch = echtesFetch; await proxy.dispose(); });
-beforeEach(async () => { telegram = []; telegramKaputt = false; ip = '10.0.0.1'; await env.DB.prepare('DELETE FROM meldungen').run(); });
+beforeEach(async () => { telegram = []; telegramKaputt = false; ip = '10.0.0.1'; for (const t of ['meldungen', 'standorte', 'betreiber', 'fehlversuche']) await env.DB.prepare('DELETE FROM ' + t).run(); });
 
 let zaehler = 0;
 const meldung = (mehr = {}) => ({ anfrage_id: 'anfrage-' + String(++zaehler).padStart(6, '0'), standort: 'Halle Test', fehlertyp: 'Alarm',
@@ -241,4 +241,213 @@ test('Browser-Zugriff: nur von der eigenen Webseite erlaubt', async () => {
   const fremd = await ruf('OPTIONS', '/api/meldung', undefined, { Origin: 'https://boese.example' });
   assert.equal(fremd.kopf.get('Access-Control-Allow-Origin'), null);
   assert.equal((await ruf('GET', '/api/gibt-es-nicht')).code, 404);
+});
+
+// ---------- Ausbau 25.11.2026 ----------
+const admin = { 'X-Admin-Key': 'geheim' };
+const altern = (id, stunden) => env.DB.prepare('UPDATE meldungen SET erstellt = ? WHERE id = ?').bind(new Date(Date.now() - stunden * 3600e3).toISOString(), id).run();
+
+test('Melder sieht den echten Stand seiner Meldung — ohne Namen und ohne Techniker-Schlüssel', async () => {
+  const m = meldung();
+  await ruf('POST', '/api/meldung', m);
+  const z = (await zeilen())[0];
+  let r = await ruf('GET', '/api/meldung?anfrage_id=' + m.anfrage_id);
+  assert.equal(r.code, 200);
+  assert.equal(r.daten.status, 'offen');
+  assert.equal(r.daten.zugestellt, true);
+  assert.equal(r.daten.ticket, 5000 + z.id);
+  await ruf('POST', '/api/status', { id: z.id, k: z.schluessel, aktion: 'dran', wer: 'Kosta' });
+  r = await ruf('GET', '/api/meldung?anfrage_id=' + m.anfrage_id);
+  assert.equal(r.daten.status, 'in_arbeit');
+  assert.ok(r.daten.dran_am);
+  await ruf('POST', '/api/status', { id: z.id, k: z.schluessel, aktion: 'done', wer: 'Kosta' });
+  r = await ruf('GET', '/api/meldung?anfrage_id=' + m.anfrage_id);
+  assert.equal(r.daten.status, 'erledigt');
+  const roh = JSON.stringify(r.daten);
+  assert.ok(!roh.includes(z.schluessel) && !roh.includes('Kosta') && !roh.includes('Maria'));
+  assert.equal((await ruf('GET', '/api/meldung?anfrage_id=gibt-es-nicht-000')).code, 404);
+});
+
+test('Technikername steht im Chat und in der Übersicht; ohne Namen geht es weiterhin', async () => {
+  await ruf('POST', '/api/meldung', meldung());
+  await ruf('POST', '/api/meldung', meldung({ automat: 'X-2' }));
+  const z = await zeilen();
+  telegram = [];
+  await ruf('POST', '/api/status', { id: z[0].id, k: z[0].schluessel, aktion: 'dran', wer: '  Kosta  ' });
+  await ruf('POST', '/api/status', { id: z[0].id, k: z[0].schluessel, aktion: 'done', wer: 'Ali' });
+  await ruf('POST', '/api/status', { id: z[1].id, k: z[1].schluessel, aktion: 'done' });
+  const texte = gesendet('sendMessage').map(t => t.daten.text);
+  assert.match(texte[0], /^🔧 BIN DRAN — Kosta — Störung #/);
+  assert.match(texte[1], /^✅ ERLEDIGT — Ali — Störung #/);
+  assert.match(texte[2], /^✅ ERLEDIGT — Störung #/);
+  const u = await ruf('GET', '/api/uebersicht', undefined, admin);
+  const e = u.daten.erledigt.find(x => x.automat === 'A-07');
+  assert.equal(e.dran_von, 'Kosta');
+  assert.equal(e.erledigt_von, 'Ali');
+});
+
+test('Reparaturdauer: Durchschnitt für Reaktion und Reparatur im Monat', async () => {
+  await ruf('POST', '/api/meldung', meldung({ automat: 'D-1' }));
+  await ruf('POST', '/api/meldung', meldung({ automat: 'D-2' }));
+  await ruf('POST', '/api/meldung', meldung({ automat: 'D-3' }));   // bleibt offen, zählt nicht in die Dauer
+  const z = await zeilen();
+  const t0 = new Date('2026-11-10T10:00:00.000Z');
+  const plus = min => new Date(t0.getTime() + min * 60000).toISOString();
+  const monat = (await zeilen())[0].monat;
+  await env.DB.prepare("UPDATE meldungen SET erstellt = ?, dran_am = ?, erledigt_am = ?, status = 'erledigt', monat = ? WHERE id = ?").bind(plus(0), plus(10), plus(60), monat, z[0].id).run();
+  await env.DB.prepare("UPDATE meldungen SET erstellt = ?, dran_am = ?, erledigt_am = ?, status = 'erledigt', monat = ? WHERE id = ?").bind(plus(0), plus(30), plus(120), monat, z[1].id).run();
+  const u = await ruf('GET', '/api/uebersicht', undefined, admin);
+  assert.deepEqual(u.daten.dauer, { erledigt: 2, reaktion_min: 20, reparatur_min: 90 });
+  assert.equal(u.daten.standorte[0].reparatur_min, 90);
+});
+
+test('Erinnerung: nicht spielbar nach 2 Std., spielbar nach 24 Std., je Störung nur 1x, nie wenn jemand dran ist', async () => {
+  const neu = async (mehr) => { await ruf('POST', '/api/meldung', meldung(mehr)); const z = await zeilen(); return z[z.length - 1]; };
+  const kritischAlt = await neu({ automat: 'K-ALT', spielbar: false });  await altern(kritischAlt.id, 3);
+  const kritischNeu = await neu({ automat: 'K-NEU', spielbar: false });  await altern(kritischNeu.id, 1);
+  const normalAlt = await neu({ automat: 'N-ALT' });                     await altern(normalAlt.id, 25);
+  const normalNeu = await neu({ automat: 'N-NEU' });                     await altern(normalNeu.id, 5);
+  const inArbeit = await neu({ automat: 'K-DRAN', spielbar: false });    await altern(inArbeit.id, 9);
+  await ruf('POST', '/api/status', { id: inArbeit.id, k: inArbeit.schluessel, aktion: 'dran' });
+  await env.DB.prepare("INSERT INTO meldungen (anfrage_id, schluessel, standort, fehlertyp, automat, melder, spielbar, monat, erstellt) VALUES ('nie-zugestellt-1', 's', 'H', 'Alarm', 'K-NIE', 'x', 0, '2026-11', ?)")
+    .bind(new Date(Date.now() - 9 * 3600e3).toISOString()).run();
+  telegram = [];
+
+  const lauf1 = await dienst.zeitlauf(env);
+  assert.equal(lauf1.erinnert, 2);
+  const texte = gesendet('sendMessage').map(t => t.daten.text).sort();
+  assert.match(texte[0], /ERINNERUNG: Störung #\d+ \(Automat K-ALT, Halle Test\) ist seit 3 Std\. offen/);
+  assert.match(texte[1], /Automat N-ALT, Halle Test\) ist seit 25 Std\. offen/);
+  assert.equal(gesendet('sendMessage').find(t => /K-ALT/.test(t.daten.text)).daten.reply_to_message_id, kritischAlt.telegram_msg_id);
+
+  telegram = [];
+  assert.equal((await dienst.zeitlauf(env)).erinnert, 0, 'zweiter Lauf erinnert nicht nochmal');
+  assert.equal(telegram.length, 0);
+
+  // Telegram-Ausfall: Erinnerung gilt als NICHT gesendet und kommt beim nächsten Lauf
+  await altern(kritischNeu.id, 4);
+  telegramKaputt = true;
+  assert.equal((await dienst.zeitlauf(env)).erinnert, 0);
+  telegramKaputt = false;
+  assert.equal((await dienst.zeitlauf(env)).erinnert, 1);
+
+  // abschaltbar
+  await altern(normalNeu.id, 30);
+  assert.equal((await dienst.zeitlauf({ ...env, ERINNERUNG_NORMAL_STD: '0' })).erinnert, 0);
+});
+
+test('Aufbewahrung: nach 12 Monaten verschwinden Namen und Freitext, die Statistik bleibt; 0 = nie', async () => {
+  await ruf('POST', '/api/meldung', meldung({ automat: 'ALT-1', beschreibung: 'privat' }));
+  await ruf('POST', '/api/meldung', meldung({ automat: 'NEU-1', beschreibung: 'bleibt' }));
+  const z = await zeilen();
+  await ruf('POST', '/api/status', { id: z[0].id, k: z[0].schluessel, aktion: 'done', wer: 'Kosta' });
+  await altern(z[0].id, 24 * 400);
+  await altern(z[1].id, 24 * 300);
+  assert.equal((await dienst.zeitlauf({ ...env, AUFBEWAHRUNG_MONATE: '0' })).anonymisiert, 0);
+  assert.equal((await dienst.zeitlauf(env)).anonymisiert, 1);
+  const [alt, neu] = await zeilen();
+  assert.deepEqual([alt.melder, alt.beschreibung, alt.erledigt_von], ['', '', '']);
+  assert.ok(alt.anonymisiert_am);
+  assert.deepEqual([alt.automat, alt.standort, alt.status], ['ALT-1', 'Halle Test', 'erledigt'], 'Gerät, Standort und Status bleiben für die Statistik');
+  assert.deepEqual([neu.melder, neu.beschreibung, neu.anonymisiert_am], ['Maria', 'bleibt', null]);
+  assert.equal((await dienst.zeitlauf(env)).anonymisiert, 0, 'nicht doppelt');
+});
+
+test('Standorte: nur mit Kennwort verwaltbar; unbekannter Standort wird angenommen, aber markiert', async () => {
+  assert.equal((await ruf('GET', '/api/standorte')).code, 401);
+  assert.equal((await ruf('POST', '/api/standorte', { name: 'Halle Test' })).code, 401);
+  assert.equal((await ruf('POST', '/api/standorte', { name: '  ' }, admin)).code, 400);
+  let r = await ruf('POST', '/api/standorte', { name: 'Halle Test' }, admin);
+  r = await ruf('POST', '/api/standorte', { name: 'Halle Zwei' }, admin);
+  r = await ruf('POST', '/api/standorte', { name: 'Halle Test' }, admin);   // doppelt = kein zweiter Eintrag
+  assert.deepEqual(r.daten.standorte, [{ name: 'Halle Test', aktiv: 1 }, { name: 'Halle Zwei', aktiv: 1 }]);
+  r = await ruf('POST', '/api/standorte', { name: 'Halle Zwei', aktiv: false }, admin);
+  assert.deepEqual(r.daten.standorte, [{ name: 'Halle Test', aktiv: 1 }, { name: 'Halle Zwei', aktiv: 0 }]);
+
+  assert.equal((await ruf('POST', '/api/meldung', meldung({ standort: 'Halle Test' }))).code, 200);
+  assert.equal((await ruf('POST', '/api/meldung', meldung({ standort: 'Halle Zwei' }))).code, 200);
+  assert.equal((await ruf('POST', '/api/meldung', meldung({ standort: 'Erfunden' }))).code, 200);
+  assert.deepEqual((await zeilen()).map(z => [z.standort, z.standort_bekannt]), [['Halle Test', 1], ['Halle Zwei', 0], ['Erfunden', 0]]);
+  const u = await ruf('GET', '/api/uebersicht', undefined, admin);
+  assert.equal(u.daten.offen.filter(m => !m.standort_bekannt).length, 2);
+});
+
+test('Sicherung: Export nur mit Kennwort; enthält alle Störungen, aber keine Schlüssel', async () => {
+  await ruf('POST', '/api/meldung', meldung());
+  await ruf('POST', '/api/meldung', meldung({ automat: 'E-2' }));
+  await ruf('POST', '/api/standorte', { name: 'Halle Test' }, admin);
+  assert.equal((await ruf('GET', '/api/export')).code, 401);
+  const r = await ruf('GET', '/api/export', undefined, admin);
+  assert.equal(r.code, 200);
+  assert.equal(r.daten.meldungen.length, 2);
+  assert.equal(r.daten.standorte.length, 1);
+  const roh = JSON.stringify(r.daten);
+  for (const z of await zeilen()) assert.ok(!roh.includes(z.schluessel) && !roh.includes(z.absender) && !roh.includes(z.anfrage_id));
+});
+
+test('Kennwort durchprobieren wird gebremst: nach 10 Fehlversuchen ist 10 Minuten Schluss — auch mit richtigem Kennwort', async () => {
+  for (let i = 0; i < 10; i++) assert.equal((await ruf('GET', '/api/uebersicht', undefined, { 'X-Admin-Key': 'falsch' + i })).code, 401);
+  assert.equal((await ruf('GET', '/api/uebersicht', undefined, { 'X-Admin-Key': 'falsch' })).code, 429);
+  assert.equal((await ruf('GET', '/api/uebersicht', undefined, admin)).code, 429);
+  ip = '10.0.0.9';
+  assert.equal((await ruf('GET', '/api/uebersicht', undefined, admin)).code, 200, 'ein anderer Absender ist nicht betroffen');
+});
+
+test('Betreiber-Trennung: eigener Chat, eigenes Kennwort, keiner sieht die Daten des anderen', async () => {
+  // Anlegen nur mit dem Haupt-Kennwort
+  const neu = { slug: 'mueller', name: 'Spielhallen Müller', telegram_chat_id: '-1001234567' };
+  assert.equal((await ruf('POST', '/api/betreiber', neu)).code, 401);
+  assert.equal((await ruf('POST', '/api/betreiber', { ...neu, slug: 'eigen' }, admin)).code, 400);
+  assert.equal((await ruf('POST', '/api/betreiber', { ...neu, telegram_chat_id: 'abc' }, admin)).code, 400);
+  const angelegt = await ruf('POST', '/api/betreiber', neu, admin);
+  assert.equal(angelegt.code, 200);
+  const kennwortMueller = angelegt.daten.kennwort;
+  assert.ok(kennwortMueller.length >= 20);
+  assert.equal((await ruf('POST', '/api/betreiber', neu, admin)).code, 409);
+  const liste = await ruf('GET', '/api/betreiber', undefined, admin);
+  assert.deepEqual(liste.daten.betreiber.map(b => [b.slug, b.aktiv]), [['mueller', 1]]);
+  assert.ok(!JSON.stringify(liste.daten).includes(kennwortMueller), 'das Kennwort wird nie wieder ausgegeben');
+  const gespeichert = (await env.DB.prepare('SELECT admin_pruefsumme FROM betreiber').first('admin_pruefsumme'));
+  assert.ok(gespeichert !== kennwortMueller && gespeichert.length === 64, 'gespeichert ist nur die Prüfsumme');
+
+  // Meldungen landen im jeweils eigenen Chat
+  telegram = [];
+  await ruf('POST', '/api/meldung', meldung({ automat: 'EIGEN-1' }));
+  await ruf('POST', '/api/meldung', meldung({ automat: 'MUE-1', betreiber: 'mueller' }));
+  assert.deepEqual(gesendet('sendMessage').map(t => t.daten.chat_id), ['8893346208', '-1001234567']);
+  assert.equal((await ruf('POST', '/api/meldung', meldung({ betreiber: 'gibt-es-nicht' }))).code, 404);
+  assert.equal(telegram.length, 2);
+
+  // "Erledigt" geht in den Chat des richtigen Betreibers
+  const zm = (await zeilen()).find(z => z.automat === 'MUE-1');
+  telegram = [];
+  await ruf('POST', '/api/status', { id: zm.id, k: zm.schluessel, aktion: 'done' });
+  assert.deepEqual([...new Set(telegram.map(t => t.daten.chat_id))], ['-1001234567']);
+
+  // Übersicht, Export und Standorte sind getrennt
+  const mue = { 'X-Admin-Key': kennwortMueller };
+  const uEigen = await ruf('GET', '/api/uebersicht', undefined, admin);
+  const uMue = await ruf('GET', '/api/uebersicht?b=mueller', undefined, mue);
+  assert.deepEqual(uEigen.daten.offen.map(m => m.automat), ['EIGEN-1']);
+  assert.deepEqual(uMue.daten.erledigt.map(m => m.automat), ['MUE-1']);
+  assert.equal(uMue.daten.offen.length, 0);
+  assert.equal((await ruf('GET', '/api/uebersicht', undefined, mue)).code, 401, 'Müller-Kennwort öffnet die eigenen Hallen nicht');
+  assert.equal((await ruf('GET', '/api/uebersicht?b=mueller', undefined, admin)).code, 401, 'Haupt-Kennwort öffnet Müller nicht');
+  assert.equal((await ruf('GET', '/api/betreiber', undefined, mue)).code, 401, 'Müller kann keine Betreiber verwalten');
+  assert.equal((await ruf('GET', '/api/export?b=mueller', undefined, mue)).daten.meldungen.length, 1);
+  await ruf('POST', '/api/standorte?b=mueller', { name: 'Müller Halle 1' }, mue);
+  assert.equal((await ruf('GET', '/api/standorte', undefined, admin)).daten.standorte.length, 0);
+  assert.equal((await ruf('GET', '/api/standorte?b=mueller', undefined, mue)).daten.standorte.length, 1);
+
+  // Die 3.-Störung-Warnung zählt je Betreiber getrennt
+  telegram = [];
+  await ruf('POST', '/api/meldung', meldung({ automat: 'GLEICH' }));
+  await ruf('POST', '/api/meldung', meldung({ automat: 'GLEICH' }));
+  await ruf('POST', '/api/meldung', meldung({ automat: 'GLEICH', betreiber: 'mueller' }));
+  assert.equal(telegram.filter(t => /ACHTUNG/.test(t.daten.text)).length, 0);
+
+  // Abschalten: QR-Codes und Kennwort des Betreibers gelten nicht mehr
+  await ruf('POST', '/api/betreiber', { ...neu, aktiv: false }, admin);
+  assert.equal((await ruf('POST', '/api/meldung', meldung({ betreiber: 'mueller' }))).code, 404);
+  assert.equal((await ruf('GET', '/api/uebersicht?b=mueller', undefined, mue)).code, 401);
 });
