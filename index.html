@@ -474,22 +474,6 @@
     btn.classList.add('selected');
   }
 
-  document.getElementById('foto').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        fotoData = e.target.result;
-        document.getElementById('fileLabel').textContent = '✓ Foto ausgewählt';
-        document.getElementById('fileLabel').classList.add('has-file');
-        const preview = document.getElementById('previewImg');
-        preview.src = fotoData;
-        preview.classList.add('visible');
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-
   function loadFromStorage() {
     const saved = localStorage.getItem('slotwatch_tickets');
     if (saved) {
@@ -520,12 +504,9 @@
     document.getElementById('btnJa').className = 'btn-spielbar';
     document.getElementById('btnNein').className = 'btn-spielbar';
     document.getElementById('automat').value = '';
-    document.getElementById('melder').value = '';
+    document.getElementById('melder').value = localStorage.getItem('slotwatch_melder') || ''; // Name bleibt gemerkt
     document.getElementById('beschreibung').value = '';
     document.getElementById('foto').value = '';
-    document.getElementById('fileLabel').textContent = '📷 Foto aufnehmen / auswählen';
-    document.getElementById('fileLabel').classList.remove('has-file');
-    document.getElementById('previewImg').classList.remove('visible');
     document.getElementById('photoBtn').innerHTML = '<span class="photo-icon">📷</span><span>Kamera öffnen</span><span style="font-size:12px;opacity:0.7;">(oder Datei auswählen)</span>';
     document.getElementById('photoBtn').classList.remove('has-photo');
     document.getElementById('photoPreview').classList.remove('visible');
