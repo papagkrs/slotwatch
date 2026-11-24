@@ -391,7 +391,15 @@
   </div>
 </div>
 
+<script src="config.js"></script>
 <script>
+  // Kennung der gerade ausgefüllten Meldung: wird sie (z.B. nach einem Netzfehler) nochmal
+  // abgeschickt, erkennt der Dienst das und es gibt keine doppelte Nachricht.
+  function neueAnfrageId() {
+    return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : 'a' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+  }
+  let anfrageId = neueAnfrageId();
   let currentStep = 1;
   let spielbar = null;
   let ticketCounter = 4000;
@@ -501,6 +509,7 @@
     fotoData = null;
     fotoBlob = null;
     selectedFehler = null;
+    anfrageId = neueAnfrageId();
     document.getElementById('btnJa').className = 'btn-spielbar';
     document.getElementById('btnNein').className = 'btn-spielbar';
     document.getElementById('automat').value = '';
@@ -595,6 +604,66 @@
     resetForm();
   }
 
+  // Neuer Weg: Meldung geht an den SlotWatch-Dienst. Der speichert sie zentral,
+  // vergibt die Ticket-Nummer und benachrichtigt den Techniker.
+  async function sendeUeberDienst(d, btn, errEl) {
+    const fertig = () => { btn.disabled = false; btn.innerHTML = '📨 JETZT ABSENDEN'; };
+    const fehler = (text) => { errEl.style.display = 'block'; errEl.textContent = text; fertig(); };
+    let antwort;
+    try {
+      const res = await fetch(window.SLOTWATCH_API + '/api/meldung', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ anfrage_id: anfrageId, standort: d.standort, fehlertyp: d.fehlertyp, automat: d.automat,
+                               melder: d.melder, spielbar: spielbar, beschreibung: d.beschreibung })
+      });
+      antwort = await res.json();
+    } catch (e) {
+      fehler('❌ Keine Verbindung – die Meldung ist NICHT angekommen. Bitte nochmal auf Absenden drücken.');
+      return;
+    }
+    if (!antwort || antwort.ok !== true) {
+      fehler('❌ NICHT angekommen: ' + ((antwort && antwort.text) || 'Unbekannter Fehler.') );
+      return;
+    }
+
+    localStorage.setItem('slotwatch_melder', d.melder);
+    const severity = spielbar === false ? 'critical' : 'medium';
+    const severityLabel = severity === 'critical' ? '🔴 KRITISCH' : '🟠 MITTEL';
+    const now = new Date().toLocaleTimeString('de-AT', {hour:'2-digit', minute:'2-digit'});
+    tickets.push({ id: antwort.ticket, location: d.standort, fehlertyp: d.fehlertyp, automat: d.automat, melder: d.melder,
+                   desc: d.beschreibung, spielbar, severity, time: now, foto: fotoBlob ? true : false });
+    try { saveToStorage(); } catch(e) {}
+    renderTickets();
+    updateStats();
+
+    document.getElementById('formSection').style.display = 'none';
+    document.getElementById('successBox').style.display = 'block';
+    const detail = document.getElementById('successDetail');
+    detail.textContent = '';
+    const zeile = (text, fett) => {
+      if (detail.childNodes.length) detail.appendChild(document.createElement('br'));
+      const el = document.createElement(fett ? 'strong' : 'span');
+      el.textContent = text;
+      detail.appendChild(el);
+      return el;
+    };
+    zeile(d.standort, true);
+    zeile(d.fehlertyp + ' — Automat ' + d.automat);
+    zeile(severityLabel + ' · Ticket #' + antwort.ticket);
+    const fotoZeile = fotoBlob ? zeile('📷 Foto wird gesendet…') : null;
+    zeile('✅ Versendet!');
+    fertig();
+
+    if (fotoBlob) {
+      const formData = new FormData();
+      formData.append('photo', fotoBlob, 'photo.jpg');
+      const ok = await fetch(window.SLOTWATCH_API + '/api/foto?anfrage_id=' + encodeURIComponent(anfrageId), { method: 'POST', body: formData })
+        .then(r => r.json()).then(r => r.ok === true).catch(() => false);
+      fotoZeile.textContent = ok ? '📷 Mit Foto' : '⚠️ Foto konnte nicht gesendet werden – die Meldung ist aber angekommen';
+    }
+  }
+
   async function submitTicket() {
     const standort = document.getElementById('standort').value;
     const fehlertyp = selectedFehler;
@@ -613,6 +682,11 @@
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerHTML = '⏳ Wird gesendet...';
+
+    if (window.SLOTWATCH_API) {
+      await sendeUeberDienst({ standort, fehlertyp, automat, melder, beschreibung }, btn, errEl);
+      return;
+    }
 
     ticketCounter++;
     const id = ticketCounter;

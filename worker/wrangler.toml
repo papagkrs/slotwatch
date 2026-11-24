@@ -1,0 +1,19 @@
+# SlotWatch-Dienst auf Cloudflare (kostenloser Plan).
+# Einrichtung: siehe worker/README.md
+name = "slotwatch"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+TELEGRAM_CHAT_ID = "8893346208"
+SEITE = "https://papagkrs.github.io/slotwatch"      # dort liegen index.html und erledigt.html
+ERLAUBTE_HERKUNFT = "https://papagkrs.github.io"    # nur diese Webseite darf den Dienst aus dem Browser nutzen
+
+# Geheim (NICHT hier eintragen): TELEGRAM_TOKEN, ADMIN_KEY
+#   npx wrangler secret put TELEGRAM_TOKEN
+#   npx wrangler secret put ADMIN_KEY
+
+[[d1_databases]]
+binding = "DB"
+database_name = "slotwatch"
+database_id = "WIRD-BEIM-ANLEGEN-EINGETRAGEN"

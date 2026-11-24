@@ -21,6 +21,7 @@
   <div class="titel" id="titel">Wird gespeichert…</div>
   <div class="text" id="text">Einen Moment bitte.</div>
 </div>
+<script src="config.js"></script>
 <script>
   // Diese Seite wird über die Link-Knöpfe unter einer Störungs-Meldung geöffnet.
   // Sie schreibt den Status SOFORT in den Telegram-Chat — ganz ohne Server.
@@ -56,7 +57,40 @@
     return { text: '✅ Erledigt', url: url };
   }
 
+  // Neuer Weg (Knöpfe vom SlotWatch-Dienst): der Dienst speichert den Status zentral
+  // und schreibt ihn genau 1x in den Chat — egal von wie vielen Handys gedrückt wird.
+  async function losUeberDienst() {
+    let antwort;
+    try {
+      const res = await fetch(window.SLOTWATCH_API + '/api/status', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.get('id'), k: p.get('k'), aktion: aktion })
+      });
+      antwort = await res.json();
+    } catch (e) {
+      zeige('❌', 'Keine Verbindung', 'Der Status wurde NICHT gespeichert.<br>Bitte den Knopf nochmal drücken.', 'fehler');
+      return;
+    }
+    if (!antwort || antwort.ok !== true) {
+      zeige('❌', 'Nicht gespeichert', '', 'fehler');
+      document.getElementById('text').textContent = (antwort && antwort.text) || 'Unbekannter Fehler.';
+      return;
+    }
+    const schluss = '<br>Du kannst das Fenster schließen.';
+    if (antwort.schon) {
+      if (antwort.status === 'erledigt') zeige('👍', 'Schon erledigt', 'Diese Störung wurde bereits als erledigt markiert.' + schluss, 'ok');
+      else zeige('👍', 'Schon gespeichert', '„Bin dran" steht bereits im Telegram-Chat.' + schluss, 'ok');
+    } else if (antwort.chat === false) {
+      zeige('⚠️', 'Gespeichert – aber nicht im Chat', 'Der Status ist gespeichert, die Nachricht in den Telegram-Chat ging aber nicht raus.<br>Bitte kurz im Chat Bescheid geben.', 'fehler');
+    } else if (antwort.status === 'erledigt') {
+      zeige('✅', 'Erledigt gespeichert!', 'Steht jetzt im Telegram-Chat.' + schluss, 'ok');
+    } else {
+      zeige('🔧', '„Bin dran" gespeichert!', 'Steht jetzt im Telegram-Chat.' + schluss, 'ok');
+    }
+  }
+
   async function los() {
+    if (window.SLOTWATCH_API && aktion && p.get('id') && p.get('k')) { await losUeberDienst(); return; }
     if (!aktion || !chat || !msg) {
       zeige('❓', 'Link unvollständig', 'Diese Seite wird über die Knöpfe in Telegram geöffnet.', 'fehler');
       return;
