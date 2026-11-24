@@ -103,12 +103,16 @@
       </div>
     </div>
 
+    <div id="quelle" style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;"></div>
     <div class="section-title">Standorte</div>
     <div class="grid" id="grid"></div>
   </div>
 </div>
 
+<script src="config.js"></script>
+<script src="verwaltung.js"></script>
 <script>
+let zentral = false;   // true = Liste kommt vom SlotWatch-Dienst (dann wird in admin.html verwaltet)
 let standorte = ['Feldmochinger Str. 8', 'Landsberger Str. 478', 'Stiftbogen 43', 'Stahlgruberring 40', 'Allacher Str. Karlsfeld', 'Bistro Tela 176', 'Casino Tela 176', 'Play Waltramstr. 1', 'Roj Reginfriedstr. 1', 'Auerfeld – Auerfeldstr. 27', 'Arena – Rosenheimer Str. 103', 'Max – Klackstr. 17 Unterschleißheim', 'Bo12 Perlach', 'Atlantis', 'Play – Schlierseer Str. 83'];
 
 function loadFromStorage() {
@@ -119,7 +123,7 @@ function loadFromStorage() {
 }
 
 function saveSettings() {
-  localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+  if (!zentral) localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
   localStorage.setItem('slotwatch_url', document.getElementById('baseUrl').value);
 }
 
@@ -149,29 +153,66 @@ function getQRUrl(url) {
   return 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(url);
 }
 
-function renderGrid() {
+// Adresse im QR-Code: Standort und (bei weiteren Betreibern) der Betreiber-Kurzname.
+function meldeUrl(name) {
   const baseUrl = document.getElementById('baseUrl').value.trim();
+  return baseUrl + '?standort=' + encodeURIComponent(name) + (SW.betreiber ? '&b=' + encodeURIComponent(SW.betreiber) : '');
+}
+
+function renderGrid() {
   const grid = document.getElementById('grid');
-  grid.innerHTML = standorte.map((name, idx) => {
-    const url = baseUrl + '?standort=' + encodeURIComponent(name);
-    const qrUrl = getQRUrl(url);
-    return '<div class="qr-card"><div class="qr-box"><img src="' + qrUrl + '" alt="QR"></div><div class="qr-name">📍 ' + name + '</div><div class="qr-actions"><button class="qr-btn" onclick="printSingle(' + idx + ')">🖨️</button><button class="qr-btn" onclick="removeStandort(' + idx + ')">🗑️</button></div></div>';
-  }).join('');
+  grid.textContent = '';
+  standorte.forEach((name, idx) => {
+    const karte = SW.el('div', 'qr-card');
+    const box = SW.el('div', 'qr-box');
+    const bild = document.createElement('img');
+    bild.alt = 'QR';
+    bild.src = getQRUrl(meldeUrl(name));
+    box.append(bild);
+    const aktionen = SW.el('div', 'qr-actions');
+    const drucken = SW.el('button', 'qr-btn', '🖨️');
+    drucken.onclick = () => printSingle(idx);
+    aktionen.append(drucken);
+    if (!zentral) { const weg = SW.el('button', 'qr-btn', '🗑️'); weg.onclick = () => removeStandort(idx); aktionen.append(weg); }
+    karte.append(box, SW.el('div', 'qr-name', '📍 ' + name), aktionen);
+    grid.append(karte);
+  });
 }
 
 function printSingle(idx) {
-  const baseUrl = document.getElementById('baseUrl').value.trim();
   const name = standorte[idx];
-  const url = baseUrl + '?standort=' + encodeURIComponent(name);
-  const qrUrl = getQRUrl(url);
+  const qrUrl = getQRUrl(meldeUrl(name));
   const win = window.open('', '_blank');
-  win.document.write('<html><head><title>QR - ' + name + '</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;"><img src="' + qrUrl + '" style="width:300px;height:300px;"></body></html>');
+  win.document.write('<html><head><title>QR</title></head><body style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;"><img id="qr" style="width:300px;height:300px;"><p id="name" style="font-size:20px;font-weight:bold;"></p></body></html>');
   win.document.close();
+  win.document.getElementById('qr').src = qrUrl;
+  win.document.getElementById('name').textContent = name;
+  win.document.title = 'QR - ' + name;
   win.onload = () => { win.print(); };
 }
 
-loadFromStorage();
-renderGrid();
+// Mit Kennwort kommt die Liste vom SlotWatch-Dienst (eine Liste für alle Geräte, gepflegt in admin.html).
+// Ohne Kennwort gilt wie früher die Liste dieses Browsers.
+async function start() {
+  loadFromStorage();
+  const quelle = document.getElementById('quelle');
+  const zurVerwaltung = () => { const a = SW.el('a', '', 'Standort-Verwaltung'); a.href = 'admin.html' + SW.anhang(); a.style.color = 'var(--accent)'; return a; };
+  if (SW.eingerichtet() && SW.kennwort()) {
+    const r = await SW.ruf('/api/standorte');
+    if (r.code === 200 && r.daten && r.daten.ok === true) {
+      zentral = true;
+      standorte = r.daten.standorte.filter(s => s.aktiv).map(s => s.name);
+      document.querySelector('.add-row').style.display = 'none';
+      quelle.append('☁️ Zentrale Standort-Liste (' + standorte.length + '). Ändern in der ', zurVerwaltung(), '.');
+    } else {
+      quelle.append('⚠️ Die zentrale Liste konnte nicht geladen werden (' + SW.fehlerText(r) + '). Unten steht die Liste dieses Geräts – sie kann veraltet sein. ', zurVerwaltung());
+    }
+  } else if (SW.eingerichtet()) {
+    quelle.append('📱 Liste dieses Geräts. Für die zentrale Liste zuerst in der ', zurVerwaltung(), ' anmelden.');
+  }
+  renderGrid();
+}
+start();
 </script>
 </body>
 </html>

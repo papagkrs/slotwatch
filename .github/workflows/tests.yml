@@ -1,0 +1,30 @@
+# Lässt bei jeder Änderung alle Tests laufen. Es wird nichts veröffentlicht und
+# keine echte Nachricht verschickt (Telegram ist in allen Tests ersetzt).
+name: Tests
+
+on:
+  push:
+    branches: [main, 'feature/**', 'fix/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test-Werkzeuge installieren
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          cd worker && npm install --no-audit --no-fund
+      - name: Dienst-Tests (lokale Datenbank)
+        run: cd worker && npm test
+      - name: Seiten-Tests im Browser
+        run: npm test

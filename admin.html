@@ -306,129 +306,149 @@
     </header>
 
     <div class="content">
-      <div class="card">
-        <div class="card-title">📊 Übersicht</div>
-        <div class="stats">
-          <div class="stat-box">
-            <div class="stat-number" id="totalCount">0</div>
-            <div class="stat-label">Standorte</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number">⚡</div>
-            <div class="stat-label">Live speichern</div>
-          </div>
-        </div>
+      <div class="card" id="nichtEingerichtet" hidden>
+        <div class="card-title">ℹ️ Dienst fehlt</div>
+        <div style="font-size: 14px; color: var(--muted);">Die Standort-Verwaltung braucht den SlotWatch-Dienst. Er ist auf dieser Seite nicht eingetragen (config.js).</div>
       </div>
 
-      <div class="card">
-        <div class="card-title">➕ Neue Standort hinzufügen</div>
-        <div class="success-msg" id="successMsg">✅ Standort hinzugefügt!</div>
+      <div class="card" id="anmeldung" hidden>
+        <div class="card-title">🔑 Anmelden</div>
         <div class="input-group">
-          <input type="text" id="newStandort" placeholder="z.B. Meine neue Location" />
-          <button class="btn" onclick="addStandort()">+</button>
+          <input type="password" id="kennwort" placeholder="Kennwort" autocomplete="current-password" />
+          <button class="btn" id="anmelden">→</button>
         </div>
-        <div style="font-size: 12px; color: var(--muted);">
-          💡 Gib einen Namen ein und klick "+" → Fertig!
-        </div>
+        <div id="anmeldeFehler" style="font-size: 13px; color: #ff4444;"></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">📍 Alle Standorte</div>
-        <div class="standorte-list" id="standorteList">
-          <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <div>Keine Standorte vorhanden</div>
+      <div id="inhalt" hidden>
+        <div class="card">
+          <div class="card-title">📊 Übersicht</div>
+          <div class="stats">
+            <div class="stat-box">
+              <div class="stat-number" id="totalCount">0</div>
+              <div class="stat-label">Aktive Standorte</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">☁️</div>
+              <div class="stat-label">Zentral gespeichert</div>
+            </div>
           </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">➕ Neuen Standort hinzufügen</div>
+          <div class="success-msg" id="successMsg">✅ Gespeichert!</div>
+          <div class="input-group">
+            <input type="text" id="newStandort" placeholder="z.B. Meine neue Location" maxlength="100" />
+            <button class="btn" id="hinzufuegen">+</button>
+          </div>
+          <div id="fehler" style="font-size: 13px; color: #ff4444;"></div>
+          <div style="font-size: 12px; color: var(--muted);">
+            💡 Der Name muss genau so geschrieben sein wie im QR-Code. Danach den QR-Code auf der QR-Seite drucken.
+          </div>
+        </div>
+
+        <div class="card" id="lokalKarte" hidden>
+          <div class="card-title">📥 Nur auf diesem Gerät gespeichert</div>
+          <div style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">Diese Standorte wurden früher nur in diesem Browser angelegt und fehlen in der zentralen Liste:</div>
+          <div class="standorte-list" id="lokalListe"></div>
+          <button class="btn" id="uebernehmen" style="margin-top: 12px;">Alle übernehmen</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📍 Alle Standorte</div>
+          <div class="standorte-list" id="standorteList"></div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 12px;">
+            „Aus“ löscht nichts: Alte Meldungen bleiben erhalten. Neue Meldungen von einem ausgeschalteten Standort kommen weiter an, werden in der Übersicht aber markiert.
+          </div>
+        </div>
+
+        <div class="card">
+          <a id="linkQr" href="qr.html" style="color: var(--accent);">🔳 QR-Codes drucken</a> &nbsp;·&nbsp;
+          <a id="linkUebersicht" href="uebersicht.html" style="color: var(--accent);">📋 Übersicht</a> &nbsp;·&nbsp;
+          <a href="#" id="abmelden" style="color: var(--muted);">Abmelden</a>
         </div>
       </div>
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="verwaltung.js"></script>
   <script>
-    let standorte = [];
+    const $ = id => document.getElementById(id);
+    let standorte = [];   // [{ name, aktiv }] vom Dienst
 
-    // Load from localStorage
-    function loadStandorte() {
-      const saved = localStorage.getItem('slotwatch_standorte');
-      if (saved) {
-        try {
-          standorte = JSON.parse(saved);
-        } catch (e) {
-          standorte = [];
-        }
-      }
-      renderList();
+    function zeigeAnmeldung(text) {
+      $('inhalt').hidden = true; $('anmeldung').hidden = false; $('anmeldeFehler').textContent = text || '';
     }
 
-    // Save to localStorage
-    function saveStandorte() {
-      localStorage.setItem('slotwatch_standorte', JSON.stringify(standorte));
+    function lokaleStandorte() {   // was die alte Admin-/QR-Seite nur in diesem Browser gespeichert hat
+      try { const l = JSON.parse(localStorage.getItem('slotwatch_standorte') || '[]'); return Array.isArray(l) ? l.filter(x => typeof x === 'string' && x.trim()) : []; }
+      catch (e) { return []; }
     }
 
-    // Add new location
-    function addStandort() {
-      const input = document.getElementById('newStandort');
-      const name = input.value.trim();
-
-      if (!name) {
-        alert('⚠️ Bitte einen Namen eingeben');
-        return;
-      }
-
-      if (standorte.includes(name)) {
-        alert('⚠️ Dieser Standort existiert bereits');
-        return;
-      }
-
-      standorte.push(name);
-      saveStandorte();
-      input.value = '';
-      input.focus();
-
-      // Show success message
-      const msg = document.getElementById('successMsg');
-      msg.classList.add('show');
-      setTimeout(() => msg.classList.remove('show'), 2000);
-
-      renderList();
+    function zeile(name, knopfText, beiKlick, blass) {
+      const z = SW.el('div', 'standort-item');
+      const n = SW.el('div', 'standort-name', '📍 ' + name);
+      if (blass) n.style.opacity = '0.45';
+      z.append(n);
+      if (knopfText) { const b = SW.el('button', 'delete-btn', knopfText); b.onclick = beiKlick; z.append(b); }
+      return z;
     }
 
-    // Delete location
-    function deleteStandort(index) {
-      if (confirm('🗑️ Wirlich löschen: "' + standorte[index] + '"?')) {
-        standorte.splice(index, 1);
-        saveStandorte();
-        renderList();
-      }
+    function zeichne() {
+      $('totalCount').textContent = standorte.filter(s => s.aktiv).length;
+      const liste = $('standorteList');
+      liste.textContent = '';
+      if (!standorte.length) liste.append(SW.el('div', 'empty-state', 'Noch keine Standorte in der zentralen Liste.'));
+      standorte.forEach(s => liste.append(zeile(s.name + (s.aktiv ? '' : ' (aus)'), s.aktiv ? 'Aus' : 'An', () => setze(s.name, !s.aktiv), !s.aktiv)));
+
+      const bekannt = new Set(standorte.map(s => s.name));
+      const fehlend = lokaleStandorte().filter(n => !bekannt.has(n.trim()));
+      $('lokalKarte').hidden = fehlend.length === 0;
+      $('lokalListe').textContent = '';
+      fehlend.forEach(n => $('lokalListe').append(zeile(n)));
+      $('uebernehmen').onclick = async () => { for (const n of fehlend) { if (!(await setze(n, true))) return; } };
     }
 
-    // Render list
-    function renderList() {
-      const list = document.getElementById('standorteList');
-      const count = document.getElementById('totalCount');
-
-      count.textContent = standorte.length;
-
-      if (standorte.length === 0) {
-        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div>Keine Standorte vorhanden</div></div>';
-        return;
+    function verarbeite(r) {
+      if (r.code === 401) { SW.vergiss(); zeigeAnmeldung('Falsches Kennwort.'); return false; }
+      if (r.code !== 200 || !r.daten || r.daten.ok !== true) {
+        if ($('inhalt').hidden) zeigeAnmeldung(SW.fehlerText(r)); else $('fehler').textContent = '⚠️ ' + SW.fehlerText(r);
+        return false;
       }
-
-      list.innerHTML = standorte.map((name, idx) => `
-        <div class="standort-item">
-          <div class="standort-name">📍 ${name}</div>
-          <button class="delete-btn" onclick="deleteStandort(${idx})" title="Löschen">🗑️</button>
-        </div>
-      `).join('');
+      standorte = r.daten.standorte;
+      $('anmeldung').hidden = true; $('inhalt').hidden = false; $('fehler').textContent = '';
+      zeichne();
+      return true;
     }
 
-    // Enter key to add
-    document.getElementById('newStandort')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') addStandort();
-    });
+    async function laden() {
+      if (!SW.kennwort()) { zeigeAnmeldung(''); return; }
+      verarbeite(await SW.ruf('/api/standorte'));
+    }
 
-    // Init
-    loadStandorte();
+    async function setze(name, aktiv) {
+      const ok = verarbeite(await SW.ruf('/api/standorte', { name: name, aktiv: aktiv }));
+      if (ok) { const m = $('successMsg'); m.classList.add('show'); setTimeout(() => m.classList.remove('show'), 2000); }
+      return ok;
+    }
+
+    async function hinzufuegen() {
+      const name = $('newStandort').value.trim();
+      if (!name) { $('fehler').textContent = '⚠️ Bitte einen Namen eingeben.'; return; }
+      if (await setze(name, true)) { $('newStandort').value = ''; $('newStandort').focus(); }
+    }
+
+    $('hinzufuegen').onclick = hinzufuegen;
+    $('newStandort').addEventListener('keydown', e => { if (e.key === 'Enter') hinzufuegen(); });
+    $('anmelden').onclick = () => { const k = $('kennwort').value; if (k) { SW.merke(k); $('kennwort').value = ''; laden(); } };
+    $('kennwort').addEventListener('keydown', e => { if (e.key === 'Enter') $('anmelden').click(); });
+    $('abmelden').onclick = e => { e.preventDefault(); SW.vergiss(); zeigeAnmeldung(''); };
+    $('linkQr').href = 'qr.html' + SW.anhang();
+    $('linkUebersicht').href = 'uebersicht.html' + SW.anhang();
+
+    if (!SW.eingerichtet()) $('nichtEingerichtet').hidden = false; else laden();
   </script>
 </body>
 </html>

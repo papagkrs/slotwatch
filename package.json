@@ -1,0 +1,11 @@
+{
+  "name": "slotwatch",
+  "private": true,
+  "description": "Nur für die Tests gebraucht. Die Webseiten selbst haben keine Abhängigkeiten.",
+  "scripts": {
+    "test": "node tests/zweite_meldung.test.js && node tests/foto_und_knoepfe.test.js && node tests/gesamt_mit_dienst.test.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

@@ -230,7 +230,7 @@
       <div class="success-icon">✅</div>
       <div class="success-title">Störung gemeldet!</div>
       <div class="success-detail" id="successDetail"></div>
-      <div class="success-status">🔧 Techniker ist informiert und auf dem Weg</div>
+      <div class="success-status" id="successStatus">🔧 Techniker ist informiert und auf dem Weg</div>
       <br><br>
       <button class="btn-new" onclick="neuerFehler()">+ Neue Störung melden</button>
     </div>
@@ -400,6 +400,51 @@
       : 'a' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
   }
   let anfrageId = neueAnfrageId();
+  const BETREIBER = (new URLSearchParams(window.location.search).get('b') || '').toLowerCase(); // leer = eigene Hallen
+
+  // Erfolgsseite: zeigt den ECHTEN Stand der Meldung (fragt den Dienst alle 20 Sekunden).
+  let standTimer = null;
+  const STAND_ALT = '🔧 Techniker ist informiert und auf dem Weg';
+  function uhr(iso) { return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+  function zeigeStand(d) {
+    const el = document.getElementById('successStatus');
+    if (d.status === 'erledigt') el.textContent = '✅ Erledigt' + (d.erledigt_am ? ' um ' + uhr(d.erledigt_am) : '');
+    else if (d.status === 'in_arbeit') el.textContent = '🔧 Techniker ist dran' + (d.dran_am ? ' seit ' + uhr(d.dran_am) : '');
+    else el.textContent = '📨 Techniker ist benachrichtigt – noch keine Rückmeldung';
+  }
+  function stoppeStand() { if (standTimer) { clearInterval(standTimer); standTimer = null; } }
+  function verfolgeStand(id) {
+    stoppeStand();
+    zeigeStand({ status: 'offen' });
+    standTimer = setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        const d = await (await fetch(window.SLOTWATCH_API + '/api/meldung?anfrage_id=' + encodeURIComponent(id))).json();
+        if (d && d.ok === true) { zeigeStand(d); if (d.status === 'erledigt') stoppeStand(); }
+      } catch (e) { /* kein Netz: letzter bekannter Stand bleibt stehen */ }
+    }, window.SLOTWATCH_STAND_MS || 20000);
+  }
+
+  // Handy-Fotos sind groß: vor dem Senden auf höchstens 1600 Pixel verkleinern (schneller bei schlechtem Empfang).
+  function verkleinere(datei) {
+    return new Promise(fertig => {
+      const bild = new Image();
+      const adresse = URL.createObjectURL(datei);
+      const aufgeben = () => { URL.revokeObjectURL(adresse); fertig(datei); };
+      bild.onerror = aufgeben;
+      bild.onload = () => {
+        try {
+          const faktor = Math.min(1, 1600 / Math.max(bild.naturalWidth, bild.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.round(bild.naturalWidth * faktor);
+          c.height = Math.round(bild.naturalHeight * faktor);
+          c.getContext('2d').drawImage(bild, 0, 0, c.width, c.height);
+          c.toBlob(klein => { URL.revokeObjectURL(adresse); fertig(klein && klein.size < datei.size ? klein : datei); }, 'image/jpeg', 0.8);
+        } catch (e) { aufgeben(); }
+      };
+      bild.src = adresse;
+    });
+  }
   let currentStep = 1;
   let spielbar = null;
   let ticketCounter = 4000;
@@ -462,7 +507,8 @@
   function handlePhoto(input) {
     const file = input.files[0];
     if (file) {
-      fotoBlob = file;
+      fotoBlob = file;   // sofort nutzbar; wird ersetzt, sobald die verkleinerte Fassung fertig ist
+      verkleinere(file).then(klein => { if (fotoBlob === file) fotoBlob = klein; });
       const reader = new FileReader();
       reader.onload = function(e) {
         fotoData = e.target.result;
@@ -536,6 +582,13 @@
       document.getElementById('logoSub').textContent = 'Störung melden';
     }
 
+    // Mit dem Dienst gibt es die zentrale Übersicht (uebersicht.html). Die alte Liste hier
+    // kannte nur die Meldungen dieses einen Handys und wurde nie auf "erledigt" gesetzt.
+    if (window.SLOTWATCH_API) {
+      document.getElementById('ticketSection').style.display = 'none';
+      document.getElementById('headerStats').style.display = 'none';
+    }
+
     // Name aus letzter Meldung laden (muss nicht nochmal tippen!)
     const savedName = localStorage.getItem('slotwatch_melder');
     if (savedName) document.getElementById('melder').value = savedName;
@@ -599,6 +652,8 @@
   }
 
   function neuerFehler() {
+    stoppeStand();
+    document.getElementById('successStatus').textContent = STAND_ALT;
     document.getElementById('successBox').style.display = 'none';
     document.getElementById('formSection').style.display = 'block';
     resetForm();
@@ -614,7 +669,7 @@
       const res = await fetch(window.SLOTWATCH_API + '/api/meldung', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ anfrage_id: anfrageId, standort: d.standort, fehlertyp: d.fehlertyp, automat: d.automat,
+        body: JSON.stringify({ anfrage_id: anfrageId, betreiber: BETREIBER, standort: d.standort, fehlertyp: d.fehlertyp, automat: d.automat,
                                melder: d.melder, spielbar: spielbar, beschreibung: d.beschreibung })
       });
       antwort = await res.json();
@@ -630,13 +685,6 @@
     localStorage.setItem('slotwatch_melder', d.melder);
     const severity = spielbar === false ? 'critical' : 'medium';
     const severityLabel = severity === 'critical' ? '🔴 KRITISCH' : '🟠 MITTEL';
-    const now = new Date().toLocaleTimeString('de-AT', {hour:'2-digit', minute:'2-digit'});
-    tickets.push({ id: antwort.ticket, location: d.standort, fehlertyp: d.fehlertyp, automat: d.automat, melder: d.melder,
-                   desc: d.beschreibung, spielbar, severity, time: now, foto: fotoBlob ? true : false });
-    try { saveToStorage(); } catch(e) {}
-    renderTickets();
-    updateStats();
-
     document.getElementById('formSection').style.display = 'none';
     document.getElementById('successBox').style.display = 'block';
     const detail = document.getElementById('successDetail');
@@ -654,6 +702,7 @@
     const fotoZeile = fotoBlob ? zeile('📷 Foto wird gesendet…') : null;
     zeile('✅ Versendet!');
     fertig();
+    verfolgeStand(anfrageId);
 
     if (fotoBlob) {
       const formData = new FormData();

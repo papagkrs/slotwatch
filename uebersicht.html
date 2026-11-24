@@ -9,37 +9,40 @@
   :root { --bg:#000; --surface:#111; --border:#2a2a2a; --accent:#ffd700; --critical:#ff4444; --medium:#ff9500; --green:#00e676; --text:#fff; --muted:#888; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  h1 { font-size: 20px; color: var(--accent); flex: 1; }
+  header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h1 { font-size: 20px; color: var(--accent); flex: 1; min-width: 180px; }
+  h1 small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
   main { max-width: 760px; margin: 0 auto; padding: 16px; }
   h2 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 24px 0 10px; }
-  .zahlen { display: flex; gap: 10px; }
-  .zahl { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; }
-  .zahl b { display: block; font-size: 28px; }
-  .zahl span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .zahlen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .zahl { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 6px; text-align: center; }
+  .zahl b { display: block; font-size: 24px; }
+  .zahl span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
   .karte { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--medium); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
   .karte.kritisch { border-left-color: var(--critical); }
-  .karte.erledigt { border-left-color: var(--green); opacity: 0.75; }
+  .karte.erledigt { border-left-color: var(--green); opacity: 0.8; }
   .karte .kopf { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; font-weight: 700; }
   .karte .nr { color: var(--muted); font-weight: 400; font-size: 13px; }
   .karte .marke { margin-left: auto; font-size: 11px; padding: 2px 10px; border-radius: 100px; border: 1px solid var(--border); color: var(--muted); }
   .karte .marke.arbeit { color: var(--accent); border-color: var(--accent); }
   .karte .marke.warn { color: var(--critical); border-color: var(--critical); }
   .karte .rest { font-size: 13px; color: #aaa; margin-top: 4px; line-height: 1.5; }
+  .karte .rest.warn { color: var(--medium); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   td { padding: 8px 6px; border-bottom: 1px solid var(--border); }
-  td:last-child { text-align: right; font-weight: 700; }
+  td:last-child { text-align: right; font-weight: 700; white-space: nowrap; }
   .leer { color: var(--muted); padding: 16px 0; font-size: 14px; }
   .hinweis { color: var(--muted); font-size: 14px; line-height: 1.6; }
   .fehler { color: var(--critical); margin-top: 10px; font-size: 14px; }
   input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; padding: 12px; margin: 12px 0; }
-  button { background: var(--accent); color: #000; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; padding: 10px 16px; cursor: pointer; }
-  button.leise { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  button, a.knopf { background: var(--accent); color: #000; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; padding: 10px 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+  button.leise, a.knopf.leise { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .reihe { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 </style>
 </head>
 <body>
 <header>
-  <h1>🎰 SlotWatch Übersicht</h1>
+  <h1>🎰 SlotWatch Übersicht<small id="betreiberName"></small></h1>
   <button id="neuLaden" hidden>🔄 Aktualisieren</button>
   <button id="abmelden" class="leise" hidden>Abmelden</button>
 </header>
@@ -55,35 +58,58 @@
       <div class="zahl"><b id="zOffen">0</b><span>Offen</span></div>
       <div class="zahl"><b id="zKritisch" style="color:var(--critical)">0</b><span>Nicht spielbar</span></div>
       <div class="zahl"><b id="zMonat">0</b><span>Diesen Monat</span></div>
+      <div class="zahl"><b id="zErledigt">0</b><span>Erledigt im Monat</span></div>
+      <div class="zahl"><b id="zReaktion">–</b><span>Ø bis „Bin dran“</span></div>
+      <div class="zahl"><b id="zReparatur">–</b><span>Ø bis erledigt</span></div>
     </div>
     <div class="fehler" id="ladeFehler"></div>
     <h2>Offene Störungen</h2><div id="offen"></div>
     <h2>Häufigste Geräte diesen Monat</h2><div id="geraete"></div>
-    <h2>Störungen je Standort diesen Monat</h2><div id="standorte"></div>
+    <h2>Je Standort diesen Monat (Anzahl · Ø bis erledigt)</h2><div id="standorte"></div>
     <h2>Zuletzt erledigt</h2><div id="erledigt"></div>
+    <h2>Sicherung und Verwaltung</h2>
+    <p class="hinweis">Die Sicherung enthält alle Störungen dieses Betreibers. Bitte regelmäßig herunterladen und sicher aufbewahren – sie enthält Namen.</p>
+    <div class="reihe">
+      <button id="sicherungCsv">⬇️ Sicherung als Tabelle (CSV)</button>
+      <button id="sicherungJson" class="leise">⬇️ Vollständig (JSON)</button>
+      <a class="knopf leise" id="linkStandorte" href="admin.html">📍 Standorte</a>
+      <a class="knopf leise" id="linkQr" href="qr.html">🔳 QR-Codes</a>
+    </div>
+    <div class="fehler" id="sicherungFehler"></div>
   </div>
   <p class="hinweis" id="nichtEingerichtet" hidden>Die Übersicht braucht den SlotWatch-Dienst. Er ist auf dieser Seite noch nicht eingetragen (config.js).</p>
 </main>
 <script src="config.js"></script>
+<script src="verwaltung.js"></script>
 <script>
-  // Alle Inhalte werden als reiner Text eingesetzt (textContent) — die Daten stammen
-  // aus dem öffentlichen Meldeformular und dürfen hier nichts ausführen können.
   const $ = id => document.getElementById(id);
-  const el = (tag, klasse, text) => { const e = document.createElement(tag); if (klasse) e.className = klasse; if (text !== undefined) e.textContent = text; return e; };
+  const el = SW.el;
   const zeit = iso => iso ? new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  // Minuten lesbar machen: 45 Min · 2 Std 5 Min · 3 Tage 4 Std
+  function dauer(min) {
+    if (min === null || min === undefined) return '–';
+    min = Math.round(min);
+    if (min < 60) return min + ' Min';
+    if (min < 48 * 60) return Math.floor(min / 60) + ' Std ' + (min % 60) + ' Min';
+    return Math.floor(min / 1440) + ' Tage ' + Math.floor((min % 1440) / 60) + ' Std';
+  }
+  const minuten = (von, bis) => (new Date(bis) - new Date(von)) / 60000;
 
   function karte(m) {
     const k = el('div', 'karte' + (m.status === 'erledigt' ? ' erledigt' : m.spielbar ? '' : ' kritisch'));
     const kopf = el('div', 'kopf');
     kopf.append(el('span', '', '🎰 ' + m.automat), el('span', '', '📍 ' + m.standort), el('span', 'nr', '#' + m.ticket));
     if (!m.zugestellt) kopf.append(el('span', 'marke warn', 'Techniker NICHT benachrichtigt'));
-    else if (m.status === 'in_arbeit') kopf.append(el('span', 'marke arbeit', '🔧 in Arbeit'));
-    else if (m.status === 'offen') kopf.append(el('span', 'marke', 'offen'));
+    else if (m.status === 'in_arbeit') kopf.append(el('span', 'marke arbeit', '🔧 in Arbeit' + (m.dran_von ? ' · ' + m.dran_von : '')));
+    else if (m.status === 'offen') kopf.append(el('span', 'marke', 'offen seit ' + dauer(minuten(m.erstellt, Date.now()))));
     k.append(kopf);
-    let rest = m.fehlertyp + (m.spielbar ? '' : ' · nicht spielbar') + ' · gemeldet ' + zeit(m.erstellt) + ' von ' + m.melder;
-    if (m.status === 'erledigt') rest += ' · erledigt ' + zeit(m.erledigt_am);
-    k.append(el('div', 'rest', rest));
+    k.append(el('div', 'rest', m.fehlertyp + (m.spielbar ? '' : ' · nicht spielbar') + ' · gemeldet ' + zeit(m.erstellt) + (m.melder ? ' von ' + m.melder : '') + (m.foto_gesendet ? ' · 📷' : '')));
+    if (m.status === 'erledigt') {
+      k.append(el('div', 'rest', '✅ erledigt ' + zeit(m.erledigt_am) + (m.erledigt_von ? ' von ' + m.erledigt_von : '') + ' · Dauer ' + dauer(minuten(m.erstellt, m.erledigt_am))));
+    }
     if (m.beschreibung) k.append(el('div', 'rest', '📝 ' + m.beschreibung));
+    if (!m.standort_bekannt) k.append(el('div', 'rest warn', '⚠️ Dieser Standort steht nicht in der Standort-Liste.'));
+    if (m.erinnert_am && m.status !== 'erledigt') k.append(el('div', 'rest warn', '⏰ Erinnerung gesendet ' + zeit(m.erinnert_am)));
     return k;
   }
   function liste(ziel, eintraege, leerText) {
@@ -103,40 +129,54 @@
   }
 
   async function laden() {
-    const kennwort = localStorage.getItem('sw_admin_key');
-    if (!kennwort) { zeigeAnmeldung(''); return; }
-    let d, code;
-    try {
-      const res = await fetch(window.SLOTWATCH_API + '/api/uebersicht', { headers: { 'X-Admin-Key': kennwort } });
-      code = res.status; d = await res.json();
-    } catch (e) {
-      if ($('inhalt').hidden) zeigeAnmeldung('Keine Verbindung zum Dienst. Bitte nochmal versuchen.');
-      else $('ladeFehler').textContent = '⚠️ Aktualisieren fehlgeschlagen (keine Verbindung) – die Anzeige unten ist NICHT aktuell.';
+    if (!SW.kennwort()) { zeigeAnmeldung(''); return; }
+    const r = await SW.ruf('/api/uebersicht');
+    if (r.code === 401) { SW.vergiss(); zeigeAnmeldung('Falsches Kennwort.'); return; }
+    if (r.code !== 200 || !r.daten || r.daten.ok !== true) {
+      if ($('inhalt').hidden) zeigeAnmeldung(SW.fehlerText(r));
+      else $('ladeFehler').textContent = '⚠️ Aktualisieren fehlgeschlagen (' + SW.fehlerText(r) + ') – die Anzeige unten ist NICHT aktuell.';
       return;
     }
-    if (code === 401) { localStorage.removeItem('sw_admin_key'); zeigeAnmeldung('Falsches Kennwort.'); return; }
-    if (!d || d.ok !== true) {
-      const text = (d && d.text) || 'Unbekannter Fehler.';
-      if ($('inhalt').hidden) zeigeAnmeldung(text); else $('ladeFehler').textContent = '⚠️ Aktualisieren fehlgeschlagen: ' + text;
-      return;
-    }
+    const d = r.daten;
     $('anmeldung').hidden = true; $('inhalt').hidden = false; $('neuLaden').hidden = false; $('abmelden').hidden = false;
     $('ladeFehler').textContent = '';
+    $('betreiberName').textContent = d.betreiber + ' · Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     $('zOffen').textContent = d.offen.length;
     $('zKritisch').textContent = d.offen.filter(m => !m.spielbar).length;
     $('zMonat').textContent = d.standorte.reduce((s, x) => s + x.anzahl, 0);
+    $('zErledigt').textContent = d.dauer.erledigt;
+    $('zReaktion').textContent = dauer(d.dauer.reaktion_min);
+    $('zReparatur').textContent = dauer(d.dauer.reparatur_min);
     liste($('offen'), d.offen.map(karte), 'Keine offenen Störungen.');
     liste($('geraete'), d.geraete.length ? tabelle(d.geraete.map(g => [g.automat, g.standort, g.anzahl + '×'])) : [], 'Diesen Monat noch keine Störung.');
-    liste($('standorte'), d.standorte.length ? tabelle(d.standorte.map(s => [s.standort, s.anzahl + '×'])) : [], 'Diesen Monat noch keine Störung.');
+    liste($('standorte'), d.standorte.length ? tabelle(d.standorte.map(s => [s.standort, s.anzahl + '× · ' + dauer(s.reparatur_min)])) : [], 'Diesen Monat noch keine Störung.');
     liste($('erledigt'), d.erledigt.map(karte), 'Noch nichts erledigt.');
   }
 
-  $('anmelden').onclick = () => { const k = $('kennwort').value; if (k) { localStorage.setItem('sw_admin_key', k); $('kennwort').value = ''; laden(); } };
+  // Sicherung: alle Störungen herunterladen (als Tabelle für Excel oder vollständig).
+  async function sicherung(alsCsv) {
+    $('sicherungFehler').textContent = '';
+    const r = await SW.ruf('/api/export');
+    if (r.code !== 200 || !r.daten || r.daten.ok !== true) { $('sicherungFehler').textContent = '⚠️ Sicherung fehlgeschlagen: ' + SW.fehlerText(r); return; }
+    const tag = new Date().toISOString().slice(0, 10);
+    if (!alsCsv) { SW.speichere('slotwatch-sicherung-' + tag + '.json', JSON.stringify(r.daten, null, 2), 'application/json'); return; }
+    const spalten = ['ticket', 'standort', 'automat', 'fehlertyp', 'spielbar', 'status', 'melder', 'beschreibung', 'erstellt', 'dran_am', 'dran_von', 'erledigt_am', 'erledigt_von'];
+    // Zellen, die mit = + - @ beginnen, würde Excel als Formel ausführen — deshalb mit ' entschärfen.
+    const zelle = w => { let t = w === null || w === undefined ? '' : String(w); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+    const zeilen = [spalten.join(';')].concat(r.daten.meldungen.map(m => spalten.map(s => zelle(m[s])).join(';')));
+    SW.speichere('slotwatch-sicherung-' + tag + '.csv', '﻿' + zeilen.join('\r\n'), 'text/csv;charset=utf-8');
+  }
+
+  $('anmelden').onclick = () => { const k = $('kennwort').value; if (k) { SW.merke(k); $('kennwort').value = ''; laden(); } };
   $('kennwort').addEventListener('keydown', e => { if (e.key === 'Enter') $('anmelden').click(); });
   $('neuLaden').onclick = laden;
-  $('abmelden').onclick = () => { localStorage.removeItem('sw_admin_key'); zeigeAnmeldung(''); };
+  $('abmelden').onclick = () => { SW.vergiss(); zeigeAnmeldung(''); };
+  $('sicherungCsv').onclick = () => sicherung(true);
+  $('sicherungJson').onclick = () => sicherung(false);
+  $('linkStandorte').href = 'admin.html' + SW.anhang();
+  $('linkQr').href = 'qr.html' + SW.anhang();
 
-  if (!window.SLOTWATCH_API) $('nichtEingerichtet').hidden = false; else laden();
+  if (!SW.eingerichtet()) $('nichtEingerichtet').hidden = false; else laden();
 </script>
 </body>
 </html>
