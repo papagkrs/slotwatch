@@ -4,7 +4,7 @@ Der Dienst ist das zentrale Gedächtnis von SlotWatch. Die Webseiten bleiben auf
 sie schicken Meldungen an diesen Dienst. Er speichert sie, vergibt die Ticket-Nummer und
 benachrichtigt den Techniker per Telegram. Läuft im kostenlosen Cloudflare-Plan.
 
-**Stand:** gebaut und lokal getestet, noch NICHT bei Cloudflare eingerichtet.
+**Stand:** bei Cloudflare eingerichtet unter `https://slotwatch.toworkflow.workers.dev` (Datenbank in der EU), die Seiten sind noch NICHT umgeschaltet.
 Solange in `config.js` keine Adresse steht, arbeiten die Seiten wie bisher (direkt an Telegram).
 
 ## Was der Dienst kann

@@ -16,4 +16,4 @@ ERLAUBTE_HERKUNFT = "https://papagkrs.github.io"    # nur diese Webseite darf de
 [[d1_databases]]
 binding = "DB"
 database_name = "slotwatch"
-database_id = "WIRD-BEIM-ANLEGEN-EINGETRAGEN"
+database_id = "91d7229b-bf4c-4d40-9aaf-4fc8a187bac3"
