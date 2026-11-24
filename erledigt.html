@@ -69,6 +69,11 @@
       return;
     }
 
+    if (alterStatus === 'dran' && aktion === 'dran') { // zweiter Druck auf "Bin dran" — nicht nochmal in den Chat schreiben
+      zeige('👍', 'Schon gespeichert', '„Bin dran" steht bereits im Telegram-Chat.<br>Du kannst das Fenster schließen.', 'ok');
+      return;
+    }
+
     const zeit = new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
     const datum = new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' });
 

@@ -671,17 +671,21 @@
         formData.append('photo', fotoBlob, 'photo.jpg');
         formData.append('caption', `📸 Foto zu Störung #${id}`);
 
+        // Ergebnis prüfen: die Erfolgsseite sagt ehrlich, ob das Foto angekommen ist
         fetch('https://api.telegram.org/bot8220622772:AAH6sZ1dp7COrQWCeRZ725STJH5_PfYsPu8/sendPhoto', {
           method: 'POST',
           body: formData
-        }).catch(e => console.log('Foto-Send Fehler (non-blocking):', e.message));
+        }).then(r => r.json()).then(r => r.ok === true).catch(() => false).then(ok => {
+          const el = document.getElementById('fotoStatus');
+          if (el) el.textContent = ok ? '📷 Mit Foto' : '⚠️ Foto konnte nicht gesendet werden – die Meldung ist aber angekommen';
+        });
       }
 
       // Show success
       document.getElementById('formSection').style.display = 'none';
       document.getElementById('successBox').style.display = 'block';
       document.getElementById('successDetail').innerHTML =
-        `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${fotoBlob ? '<br>📷 Mit Foto' : ''}<br>✅ Versendet!`;
+        `<strong>${standort}</strong><br>${fehlertyp}${automat?' — Automat '+automat:''}<br>${severityLabel}${fotoBlob ? '<br><span id="fotoStatus">📷 Foto wird gesendet…</span>' : ''}<br>✅ Versendet!`;
 
     } catch(err) {
       alert('❌ Fehler: ' + err.message);
