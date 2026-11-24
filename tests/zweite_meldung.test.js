@@ -11,6 +11,8 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
+  // Dieser Test prüft den ALTEN Weg (direkt an Telegram) — er bleibt als Rückfallweg erhalten.
+  await page.addInitScript(() => Object.defineProperty(window, 'SLOTWATCH_API', { value: '', writable: false }));
   const gesendet = [];   // abgefangene sendMessage-Texte
   const fehler = [];     // JavaScript-Fehler auf der Seite
   page.on('pageerror', e => fehler.push(e.message));

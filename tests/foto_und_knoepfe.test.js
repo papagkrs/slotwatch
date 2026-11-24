@@ -11,6 +11,8 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 
 async function neueSeite(browser, fotoOk) {
   const page = await browser.newPage();
+  // Dieser Test prüft den ALTEN Weg (direkt an Telegram) — er bleibt als Rückfallweg erhalten.
+  await page.addInitScript(() => Object.defineProperty(window, 'SLOTWATCH_API', { value: '', writable: false }));
   const aufrufe = [];
   await page.route(/^https?:\/\//, route => {
     const url = route.request().url();
