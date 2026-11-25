@@ -38,7 +38,7 @@ Die Seiten liegen auf GitHub Pages, das zentrale Gedächtnis ist ein Dienst bei 
 | C2 | Sicherung als Download (CSV/JSON) | 25.11. |
 | C3 | Namen/Freitext werden nach Frist entfernt | 25.11. |
 | C4 | Fotos werden vor dem Senden verkleinert | 25.11. |
-| D1 | Marktrecherche: `docs/MARKTRECHERCHE_2026-11.md` | 25.11. |
+| D1 | Marktrecherche Spielhallen: `docs/MARKTRECHERCHE_2026-11.md`; andere Branchen: `docs/MARKTANALYSE_BRANCHEN_2026-11.md` | 25.11. |
 | D2 | Weitere Betreiber technisch getrennt (eigener Chat, eigenes Kennwort, eigene Daten) | 25.11. |
 
 ## Bekannte Grenzen
